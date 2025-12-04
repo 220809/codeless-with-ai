@@ -89,14 +89,17 @@ const handleLogout = () => {
 
 <style scoped>
 .global-header {
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
   padding: 0;
   height: 64px;
   line-height: 64px;
   position: sticky;
   top: 0;
   z-index: 1000;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .header-content {
@@ -120,13 +123,19 @@ const handleLogout = () => {
   width: 45px;
   height: 45px;
   object-fit: contain;
+  transition: transform 0.3s ease;
+}
+
+.logo:hover {
+  transform: scale(1.05);
 }
 
 .site-title {
   font-size: 24px;
   font-weight: 600;
-  color: #000000;
+  color: #1e293b;
   white-space: nowrap;
+  letter-spacing: -0.5px;
 }
 
 .header-menu {
@@ -134,26 +143,68 @@ const handleLogout = () => {
   font-weight: 400;
   border-bottom: none;
   margin-left: 24px;
+  background: transparent;
+}
+
+.header-menu :deep(.ant-menu-item) {
+  color: #64748b;
+  font-size: 15px;
+  padding: 0 16px;
+  margin: 0 4px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.header-menu :deep(.ant-menu-item:hover) {
+  color: #1890ff;
+  background: rgba(24, 144, 255, 0.08);
+}
+
+.header-menu :deep(.ant-menu-item-selected) {
+  color: #1890ff;
+  background: rgba(24, 144, 255, 0.1);
+  font-weight: 500;
+}
+
+.header-menu :deep(.ant-menu-item-selected::after) {
+  display: none;
 }
 
 .header-right {
   display: flex;
   align-items: center;
+  gap: 12px;
 }
 
 .user-info {
   cursor: pointer;
-  padding: 0 8px;
-  border-radius: 4px;
-  transition: background-color 0.3s;
+  padding: 4px 12px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
 }
 
 .user-info:hover {
-  background-color: rgba(0, 0, 0, 0.06);
+  background-color: rgba(0, 0, 0, 0.04);
 }
 
 .user-name {
   font-size: 14px;
+  color: #334155;
+  font-weight: 500;
+}
+
+.header-right :deep(.ant-btn-primary) {
+  height: 36px;
+  padding: 0 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(24, 144, 255, 0.2);
+  transition: all 0.2s ease;
+}
+
+.header-right :deep(.ant-btn-primary:hover) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(24, 144, 255, 0.3);
 }
 
 /* 响应式设计 */
@@ -168,6 +219,11 @@ const handleLogout = () => {
 
   .header-menu {
     margin-left: 12px;
+  }
+
+  .header-menu :deep(.ant-menu-item) {
+    padding: 0 12px;
+    font-size: 14px;
   }
 
   .user-name {

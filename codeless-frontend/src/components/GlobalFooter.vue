@@ -17,24 +17,30 @@
 
 <style scoped>
 .global-footer {
-  background: #f0f2f5;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   text-align: center;
-  padding: 16px 0;
-  border-top: 1px solid #e8e8e8;
+  padding: 20px 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
   position: relative;
   bottom: 0;
   width: 100%;
+  margin-top: auto;
 }
 
 .footer-content {
-  color: rgba(0, 0, 0, 0.65);
+  color: #64748b;
   font-size: 14px;
+  font-weight: 400;
 }
 
 .footer-content a {
   color: #1890ff;
   text-decoration: none;
   margin-left: 4px;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 .footer-content a:hover {
