@@ -35,14 +35,14 @@
            </div>
          </template>
          <template v-if="route.path === '/user/edit'">
-           <UserEditPage />
+           <UserEditPage :edit-user="loginUserStore.loginUser"/>
          </template>
        </a-layout-content>
      </a-layout>
   </div>
 </template>
 <script lang="ts" setup>
-import { computed, reactive, ref } from 'vue'
+import { computed } from 'vue'
 import {
   UserOutlined,
   FormOutlined,

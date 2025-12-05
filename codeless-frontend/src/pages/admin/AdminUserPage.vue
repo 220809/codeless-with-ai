@@ -82,20 +82,24 @@
         </template>
         <template v-if="column.dataIndex === 'options'">
           <a-space :size="4">
-            <a-button type="primary" ghost size="small">修改</a-button>
-            <a-button danger ghost size="small">删除</a-button>
+            <a-button type="primary" ghost size="small" @click="handleEdit(record)">修改</a-button>
+            <a-button danger ghost size="small" @click="handleDelete(record.id)">删除</a-button>
           </a-space>
         </template>
       </template>
     </a-table>
+    <a-modal v-model:open="editModalOpen" title="修改用户信息" destroy-on-close :footer="null">
+      <user-edit-page :edit-user="editUser" />
+    </a-modal>
   </div>
 </template>
 <script lang="ts" setup>
 import { message, type TableColumnsType } from 'ant-design-vue'
 import { computed, onMounted, reactive, ref } from 'vue'
-import { pageListUser } from '@/api/user.ts'
+import { deleteUser, pageListUser } from '@/api/user.ts'
 import { SmileTwoTone, UserOutlined } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
+import UserEditPage from '@/pages/user/UserEditPage.vue'
 const columns: TableColumnsType = [
   {
     title: '用户名',
@@ -162,6 +166,9 @@ const userRoleEnum = {
   1: '管理员',
 }
 
+const editModalOpen = ref(false);
+const editUser = ref<API.LoginUserVo>();
+
 const fetchData = async () => {
   const res = await pageListUser({ ...searchParams })
   if (res.data.code === 200) {
@@ -195,6 +202,21 @@ const handleSearch = (values: any) => {
   // 重置页码
   pagination.value.current = 1;
   fetchData();
+}
+
+const handleDelete = async (id: number) => {
+  const res = await deleteUser({id});
+  if (res.data.code === 200) {
+    await message.success('删除成功', .5);
+    window.location.reload();
+  } else {
+    message.error('操作失败, ' + res.data.message);
+  }
+}
+
+const handleEdit = (record: any) => {
+  editUser.value = record;
+  editModalOpen.value = true;
 }
 </script>
 <style>
