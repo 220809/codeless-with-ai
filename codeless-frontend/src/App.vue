@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import BasicLayout from './layouts/BasicLayout.vue'
-import { healthCheck } from '@/api/healthController.ts'
+import { useLoginUserStore } from '@/stores/loginUser.ts'
 
-healthCheck().then(
-  ({data}) => console.log(data),
-)
+const { fetchLoginUser } = useLoginUserStore();
+fetchLoginUser();
 </script>
 
 <template>
@@ -22,7 +21,8 @@ healthCheck().then(
 body {
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
     'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif, 'Apple Color Emoji',
     'Segoe UI Emoji', 'Segoe UI Symbol';
   -webkit-font-smoothing: antialiased;

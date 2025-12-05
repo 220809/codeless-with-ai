@@ -17,15 +17,15 @@
 
       <!-- 右侧：用户信息或登录按钮 -->
       <div class="header-right">
-        <template v-if="isLoggedIn">
+        <template v-if="loginUserStore.loginUser.id">
           <a-dropdown>
             <a-space class="user-info">
-              <a-avatar :size="32" :src="userAvatar" />
-              <span class="user-name">{{ userName }}</span>
+              <a-avatar :size="32" :src="loginUserStore.loginUser.avatarUrl" />
+              <span class="user-name">{{ loginUserStore.loginUser.username }}</span>
             </a-space>
             <template #overlay>
               <a-menu>
-                <a-menu-item key="profile">个人中心</a-menu-item>
+                <a-menu-item key="profile" @click="router.push('/user/home')">个人中心</a-menu-item>
                 <a-menu-item key="settings">设置</a-menu-item>
                 <a-menu-divider />
                 <a-menu-item key="logout" @click="handleLogout">退出登录</a-menu-item>
@@ -33,7 +33,9 @@
             </template>
           </a-dropdown>
         </template>
-        <a-button v-else type="primary" @click="handleLogin">登录</a-button>
+        <a-button v-else type="primary" href="/user/login">
+          <span style="line-height: 32px"> 登录 </span>
+        </a-button>
       </div>
     </div>
   </a-layout-header>
@@ -42,19 +44,40 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import type { MenuProps } from 'ant-design-vue'
+import { type MenuProps, message } from 'ant-design-vue'
+import { useLoginUserStore } from '@/stores/loginUser.ts'
+import { userLogout } from '@/api/user.ts'
+
+const loginUserStore = useLoginUserStore()
 
 // 菜单配置
-const menuItems = ref<MenuProps['items']>([
+const allMenuItems = [
   {
     key: '/',
     label: '首页',
   },
   {
-    key: '/about',
-    label: '关于',
+    key: '/admin/user',
+    label: '用户管理',
   },
-])
+  {
+    key: '/github',
+    label: 'GitHub',
+  },
+];
+
+const filterMenuItems = () => {
+  return allMenuItems.filter(item => {
+    const loginUserStore = useLoginUserStore();
+    const loginUser = loginUserStore.loginUser;
+    if (item.key.startsWith('/admin')) {
+      return loginUser?.userRole === 1;
+    }
+    return true;
+  });
+}
+
+const menuItems = computed(() => filterMenuItems());
 
 // 路由
 const router = useRouter()
@@ -63,27 +86,20 @@ const route = useRoute()
 // 当前选中的菜单项
 const selectedKeys = computed(() => [route.path])
 
-// 用户登录状态（这里使用 ref，实际应该从 store 或 API 获取）
-const isLoggedIn = ref(false)
-const userName = ref('用户名')
-const userAvatar = ref('')
-
 // 菜单点击处理
 const handleMenuClick: MenuProps['onClick'] = (e) => {
   router.push(e.key as string)
 }
 
-// 登录处理
-const handleLogin = () => {
-  // TODO: 实现登录逻辑
-  console.log('登录')
-}
-
 // 退出登录处理
-const handleLogout = () => {
-  isLoggedIn.value = false
-  // TODO: 实现退出登录逻辑
-  console.log('退出登录')
+const handleLogout = async () => {
+  const res = await userLogout()
+  if (res.data.code === 200) {
+    loginUserStore.setLoginUser({})
+    router.replace('/user/login')
+  } else {
+    message.error('操作失败, ' + res.data.message)
+  }
 }
 </script>
 
@@ -92,7 +108,9 @@ const handleLogout = () => {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.06);
   padding: 0;
   height: 64px;
   line-height: 64px;
@@ -231,4 +249,3 @@ const handleLogout = () => {
   }
 }
 </style>
-

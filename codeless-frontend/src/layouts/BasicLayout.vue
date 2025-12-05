@@ -32,7 +32,7 @@ import GlobalFooter from '@/components/GlobalFooter.vue'
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: 
+  background-image:
     radial-gradient(circle at 20% 50%, rgba(147, 197, 253, 0.1) 0%, transparent 50%),
     radial-gradient(circle at 80% 80%, rgba(167, 243, 208, 0.1) 0%, transparent 50%),
     radial-gradient(circle at 40% 20%, rgba(196, 181, 253, 0.08) 0%, transparent 50%);
@@ -43,6 +43,7 @@ import GlobalFooter from '@/components/GlobalFooter.vue'
 .layout-content {
   flex: 1;
   background: transparent;
+  margin: 0 auto;
   min-height: calc(100vh - 64px - 50px);
   position: relative;
   z-index: 1;
