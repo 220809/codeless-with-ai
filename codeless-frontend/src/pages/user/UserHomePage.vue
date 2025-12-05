@@ -4,11 +4,11 @@
        <a-layout-sider>
          <div class="logo" />
          <a-menu v-model:selectedKeys="selectedKeys" theme="dark" mode="inline">
-           <a-menu-item key="1" @click="() => router.push('/user/home')">
+           <a-menu-item key="/user/home" @click="() => router.push('/user/home')">
              <user-outlined />
              <span class="nav-text">主页</span>
            </a-menu-item>
-           <a-menu-item key="2" @click="() => router.push('/user/edit')">
+           <a-menu-item key="/user/edit" @click="() => router.push('/user/edit')">
              <FormOutlined />
              <span class="nav-text">编辑信息</span>
            </a-menu-item>
@@ -42,7 +42,7 @@
   </div>
 </template>
 <script lang="ts" setup>
-import { ref } from 'vue';
+import { computed, reactive, ref } from 'vue'
 import {
   UserOutlined,
   FormOutlined,
@@ -53,7 +53,8 @@ import UserEditPage from '@/pages/user/UserEditPage.vue'
 
 const route =  useRoute();
 const router = useRouter();
-const selectedKeys = ref<string[]>(['1']);
+
+const selectedKeys = computed(() => ([route.path]));
 
 const loginUserStore = useLoginUserStore();
 </script>

@@ -8,14 +8,14 @@
     <a-form-item name="userName" label="用户名" :rules="[{ validator: usernameValidator }]">
       <a-input v-model:value="formState.username" />
     </a-form-item>
-    <a-form-item name="userAccount" label="账号" :rules="[{ validator: accountValidator }]">
-      <span>{{formState.userAccount}}</span>
+    <a-form-item name="userAccount" label="账号">
+      <span>{{loginUserStore.loginUser?.userAccount}}</span>
     </a-form-item>
     <a-form-item name="userIntro" label="用户简介">
       <a-textarea v-model:value="formState.userIntro" />
     </a-form-item>
     <a-form-item name="avatarUrl" label="用户头像">
-      <a-image :src="formState.avatarUrl" :height="64"/>
+      <a-image :src="loginUserStore.loginUser?.avatarUrl" :height="64"/>
     </a-form-item>
     <a-form-item name="gender" label="性别">
       <a-select v-model:value="formState.gender" allow-clear :first-active-value="formState.gender">
@@ -25,7 +25,7 @@
       </a-select>
     </a-form-item>
     <a-form-item name="userRole" label="用户角色">
-      <span>{{formState.userRole === 0 ? '用户' : '管理员'}}</span>
+      <span>{{loginUserStore.loginUser?.userRole === 0 ? '用户' : '管理员'}}</span>
     </a-form-item>
     <a-form-item :wrapper-col="{ ...layout.wrapperCol, offset: 18 }">
       <a-button type="primary" html-type="submit">提交信息</a-button>
@@ -37,11 +37,13 @@ import { reactive } from 'vue';
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import { updateUser } from '@/api/user.ts'
 import { message } from 'ant-design-vue'
-import { accountValidator, usernameValidator } from '@/validator.ts'
+import { usernameValidator } from '@/validator.ts'
+import { useRouter } from 'vue-router'
 const layout = {
   labelCol: { span: 4 },
   wrapperCol: { span: 16 },
 };
+const router = useRouter();
 
 const loginUserStore = useLoginUserStore();
 
@@ -53,6 +55,7 @@ const handleSubmit = async () => {
   const res = await updateUser(formState);
   if (res.data.code === 200) {
     message.success('修改信息成功!');
+    router.replace('/user/home');
   } else {
     message.error('操作失败, ' + res.data.message);
   }

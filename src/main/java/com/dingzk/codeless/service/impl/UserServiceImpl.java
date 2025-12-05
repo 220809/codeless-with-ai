@@ -22,6 +22,8 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
+import java.util.Objects;
+
 /**
  * 用户服务实现类
  *
@@ -186,7 +188,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
     }
 
     @Override
-    public boolean updateUser(UserUpdateRequest userUpdateRequest) {
+    public boolean updateUser(UserUpdateRequest userUpdateRequest, HttpServletRequest request) {
+
+        ThrowUtils.throwIf(request == null, ErrorCode.SYSTEM_ERROR);
+        // 更新权限校验
+        User loginUser = getLoginUser(request);
+        checkUpdatePermission(loginUser, userUpdateRequest);
+
         // 1. 参数校验
         User userToSave = new User();
         BeanUtils.copyProperties(userUpdateRequest, userToSave);
@@ -250,6 +258,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
         ThrowUtils.throwIf(UserRoleEnum.fromValue(userRole) == null,
                 ErrorCode.BAD_PARAM_ERROR, "用户角色不合法"
         );
+    }
+
+    private void checkUpdatePermission(User loginUser, UserUpdateRequest userUpdateRequest) {
+        // 1. 校验用户权限
+        Long id = userUpdateRequest.getId();
+        ThrowUtils.throwIf(loginUser.getUserRole() != UserRoleEnum.ADMIN.getValue()
+                        && !Objects.equals(loginUser.getId(), id), ErrorCode.NO_AUTH_ERROR);
+        // 2. 非管理员禁止修改用户账号和用户角色
+        ThrowUtils.throwIf(loginUser.getUserRole() != UserRoleEnum.ADMIN.getValue()
+                && (!loginUser.getUserAccount().equals(userUpdateRequest.getUserAccount())
+                        || !loginUser.getUserRole().equals(userUpdateRequest.getUserRole())),
+                ErrorCode.NO_AUTH_ERROR);
     }
 
     @Override

@@ -54,11 +54,27 @@ public interface UserService extends IService<User> {
      */
     long addUser(UserAddRequest userAddRequest);
 
-    boolean updateUser(UserUpdateRequest userUpdateRequest);
-
+    /**
+     * 管理员接口: 删除用户
+     * @param id 用户id
+     * @return 删除结果
+     */
     boolean deleteUser(Long id);
 
     // endregion
 
+    /**
+     * 分页查询用户
+     * @param userSearchRequest 用户查询请求
+     * @return 用户分页列表
+     */
     Page<User> pageListUser(UserSearchRequest userSearchRequest);
+
+    /**
+     * 管理员接口: 更新用户
+     * @param userUpdateRequest 用户更新请求
+     * @param request request
+     * @return 更新结果
+     */
+    boolean updateUser(UserUpdateRequest userUpdateRequest, HttpServletRequest request);
 }

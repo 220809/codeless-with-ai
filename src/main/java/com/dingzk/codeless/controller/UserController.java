@@ -85,12 +85,11 @@ public class UserController {
 
     @PostMapping("/update")
     @Operation(summary = "更新用户")
-    @CheckPermission(allow = UserConstant.ROLE_ADMIN)
-    BaseResponse<Boolean> updateUser(@RequestBody UserUpdateRequest userUpdateRequest) {
+    BaseResponse<Boolean> updateUser(@RequestBody UserUpdateRequest userUpdateRequest, HttpServletRequest request) {
         if (userUpdateRequest == null) {
             throw new BusinessException(ErrorCode.BAD_PARAM_ERROR);
         }
-        boolean result = userService.updateUser(userUpdateRequest);
+        boolean result = userService.updateUser(userUpdateRequest, request);
         return RespUtils.success(result);
     }
 

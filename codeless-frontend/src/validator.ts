@@ -1,3 +1,4 @@
+//@ts-ignore
 import type { Rule } from 'ant-design-vue'
 
 export const accountValidator = async (_rule: Rule, value: string) => {
@@ -7,7 +8,7 @@ export const accountValidator = async (_rule: Rule, value: string) => {
   if (!value.match(/^[a-zA-Z0-9]{4,11}$/)) {
     return Promise.reject('账号不合法');
   }
-
+  return Promise.resolve(true);
 }
 
 export const passwordValidator = async (_rule: Rule, value: string) => {
@@ -17,7 +18,7 @@ export const passwordValidator = async (_rule: Rule, value: string) => {
   if (!value.match(/^[a-zA-Z0-9#$%&'\u0022()*+,\-.\/:;<=>?@\[\]^_{|}~\\]{8,16}$/)) {
     return Promise.reject('密码不合法');
   }
-
+  return Promise.resolve(true);
 }
 
 export const usernameValidator = async (_rule: Rule, value: string) => {
@@ -27,4 +28,5 @@ export const usernameValidator = async (_rule: Rule, value: string) => {
   if (!value.match(/^\S{3,16}$/)) {
     return Promise.reject('用户名不合法');
   }
+  return Promise.resolve(true);
 }
