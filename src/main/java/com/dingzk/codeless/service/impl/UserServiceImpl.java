@@ -202,7 +202,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
 
         // 2. 更新用户
         // 密码入库前加密
-        userToSave.setPassword(encryptPassword(userToSave.getPassword()));
+        if (userToSave.getPassword() != null) {
+            // 密码非空时设置加密密码
+            userToSave.setPassword(encryptPassword(userToSave.getPassword()));
+        }
         boolean result = this.updateById(userToSave);
         ThrowUtils.throwIf(!result, ErrorCode.NOT_FOUND_ERROR, "用户不存在");
         return true;
@@ -215,47 +218,36 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
 
         String userAccount = user.getUserAccount();
         if (isAdd || userAccount != null) {
-            ThrowUtils.throwIf(StringUtils.isBlank(userAccount)
-                            || (userAccount.length() < USER_ACCOUNT_MIN_LENGTH
-                                    || userAccount.length() > USER_ACCOUNT_MAX_LENGTH
-                                    || !userAccount.matches(USER_ACCOUNT_REGEX)),
+            ThrowUtils.throwIf(invalidPattern(userAccount, USER_ACCOUNT_MIN_LENGTH, USER_ACCOUNT_MAX_LENGTH, USER_ACCOUNT_REGEX),
                     ErrorCode.BAD_PARAM_ERROR, "账号不合法"
             );
         }
 
         String password = user.getPassword();
         if (isAdd || password != null) {
-            ThrowUtils.throwIf(StringUtils.isBlank(password)
-                            || (password.length() < PASSWORD_MIN_LENGTH
-                                    || password.length() > PASSWORD_MAX_LENGTH
-                                    || !password.matches(PASSWORD_REGEX)),
+            ThrowUtils.throwIf(invalidPattern(password, PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH, PASSWORD_REGEX),
                     ErrorCode.BAD_PARAM_ERROR, "密码不合法"
             );
         }
 
         String username = user.getUsername();
-        ThrowUtils.throwIf(username != null && StringUtils.isBlank(username),
-                ErrorCode.BAD_PARAM_ERROR, "用户名不合法"
-        );
-        ThrowUtils.throwIf(StringUtils.isNotBlank(username)
-                        && (username.length() < USERNAME_MIN_LENGTH
-                            || username.length() > USERNAME_MAX_LENGTH
-                            || !username.matches(USERNAME_REGEX)),
+        ThrowUtils.throwIf(username != null
+                        && invalidPattern(username, USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH, USERNAME_REGEX),
                 ErrorCode.BAD_PARAM_ERROR, "用户名不合法"
         );
 
         String userIntro = user.getUserIntro();
-        ThrowUtils.throwIf(StringUtils.isNotBlank(userIntro) && userIntro.length() > 100,
+        ThrowUtils.throwIf(userIntro != null && userIntro.length() > 100,
                 ErrorCode.BAD_PARAM_ERROR, "用户简介过长"
         );
 
         Integer gender = user.getGender();
-        ThrowUtils.throwIf(UserGenderEnum.fromValue(gender) == null,
+        ThrowUtils.throwIf(gender != null && UserGenderEnum.fromValue(gender) == null,
                 ErrorCode.BAD_PARAM_ERROR, "性别不合法"
         );
 
         Integer userRole = user.getUserRole();
-        ThrowUtils.throwIf(UserRoleEnum.fromValue(userRole) == null,
+        ThrowUtils.throwIf(userRole != null && UserRoleEnum.fromValue(userRole) == null,
                 ErrorCode.BAD_PARAM_ERROR, "用户角色不合法"
         );
     }
@@ -270,6 +262,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
                 && (!loginUser.getUserAccount().equals(userUpdateRequest.getUserAccount())
                         || !loginUser.getUserRole().equals(userUpdateRequest.getUserRole())),
                 ErrorCode.NO_AUTH_ERROR);
+    }
+
+    private boolean invalidPattern(String param, int min, int max, String regex) {
+        return param == null || param.length() < min || param.length() > max || !param.matches(regex);
     }
 
     @Override
