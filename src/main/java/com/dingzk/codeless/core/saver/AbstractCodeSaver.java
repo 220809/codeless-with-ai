@@ -1,7 +1,5 @@
-package com.dingzk.codeless.core;
+package com.dingzk.codeless.core.saver;
 
-import com.dingzk.codeless.ai.model.MultiFileCodeResult;
-import com.dingzk.codeless.ai.model.SingleHtmlCodeResult;
 import com.dingzk.codeless.exception.BusinessException;
 import com.dingzk.codeless.exception.ErrorCode;
 import com.dingzk.codeless.model.enums.GenFileTypeEnum;
@@ -15,40 +13,34 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 /**
- * 保存代码文件
+ * 代码保存器抽象类
  *
  * @author ding
- * @date 2025/12/6 18:44
+ * @date 2025/12/6 22:01
  */
-@Deprecated
 @Slf4j
-public class SaveCodeFileHelper {
-
+public abstract class AbstractCodeSaver<T> {
     /**
      * 代码文件保存根路径
      */
     private static final String CODE_FILE_SAVE_ROOT_PATH = System.getProperty("user.dir") + "/tmp/code_output";
-
-    public static File saveSingleHtmlCodeResult(SingleHtmlCodeResult singleHtmlCodeResult) {
-        String fileBaseDir = createUniqueFileDir(GenFileTypeEnum.SINGLE_HTML.getName());
-        saveCodeFile(fileBaseDir, "index.html", singleHtmlCodeResult.getHtmlCode());
-        return new File(fileBaseDir);
-    }
-
-    public static File saveMultiFileCodeResult(MultiFileCodeResult multiFileCodeResult) {
-        String fileBaseDir = createUniqueFileDir(GenFileTypeEnum.MULTI_FILE.getName());
-        saveCodeFile(fileBaseDir, "index.html", multiFileCodeResult.getHtmlCode());
-        saveCodeFile(fileBaseDir, "style.css", multiFileCodeResult.getCssCode());
-        saveCodeFile(fileBaseDir, "script.js", multiFileCodeResult.getJsCode());
+    public final File save(T codeResult) {
+        // 1. 校验参数
+        validateBeforeSave(codeResult);
+        // 2. 生成保存代码根目录
+        String fileBaseDir = createUniqueFileDir();
+        // 3. 保存代码文件
+        saveFiles(fileBaseDir, codeResult);
+        // 4. 返回保存的文件目录
         return new File(fileBaseDir);
     }
 
     /**
      * 生成唯一文件目录
-     * @param bizType 业务类型
      * @return 文件目录路径
      */
-    private static String createUniqueFileDir(String bizType) {
+    private String createUniqueFileDir() {
+        String bizType = genFileTypeEnum().getName();
         String dirName = StringUtils.join(bizType, "_", RandomStringUtils.secure().nextAlphanumeric(16));
         String dirPath = StringUtils.join(CODE_FILE_SAVE_ROOT_PATH, File.separator, dirName);
         try {
@@ -60,7 +52,17 @@ public class SaveCodeFileHelper {
         return dirPath;
     }
 
-    public static void saveCodeFile(String dirPath, String fileName, String fileContent) {
+    protected void validateBeforeSave(T codeResult) {
+        if (codeResult == null) {
+            throw new BusinessException(ErrorCode.BAD_PARAM_ERROR, "保存代码参数为空");
+        }
+    }
+
+    protected abstract void saveFiles(String fileBaseDir, T codeResult);
+
+    protected abstract GenFileTypeEnum genFileTypeEnum();
+
+    protected static void saveCodeFile(String dirPath, String fileName, String fileContent) {
         try {
             FileUtils.writeStringToFile(new File(StringUtils.join(dirPath, File.separator, fileName)), fileContent, StandardCharsets.UTF_8);
         } catch (IOException e) {

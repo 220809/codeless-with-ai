@@ -12,6 +12,7 @@ import java.util.regex.Pattern;
  * @author ding
  * @date 2025/12/6 19:38
  */
+@Deprecated
 public class AiMessageParser {
 
     private static final Pattern HTML_CODE_PATTERN = Pattern.compile("```html\\s*\\n([\\s\\S]*?)```", Pattern.CASE_INSENSITIVE);

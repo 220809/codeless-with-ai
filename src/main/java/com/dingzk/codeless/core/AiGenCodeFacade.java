@@ -3,6 +3,9 @@ package com.dingzk.codeless.core;
 import com.dingzk.codeless.ai.AiGenCodeService;
 import com.dingzk.codeless.ai.model.MultiFileCodeResult;
 import com.dingzk.codeless.ai.model.SingleHtmlCodeResult;
+import com.dingzk.codeless.core.parser.CodeParserExecutor;
+import com.dingzk.codeless.core.saver.CodeSaverExecutor;
+import com.dingzk.codeless.exception.BusinessException;
 import com.dingzk.codeless.exception.ErrorCode;
 import com.dingzk.codeless.exception.ThrowUtils;
 import com.dingzk.codeless.model.enums.GenFileTypeEnum;
@@ -34,10 +37,15 @@ public class AiGenCodeFacade {
      */
     public File generateAndSaveCodeFile(String userMessage, GenFileTypeEnum fileType) {
         ThrowUtils.throwIf(fileType == null, ErrorCode.BAD_PARAM_ERROR, "生成文件类型不能为空");
-        return switch (fileType) {
-            case SINGLE_HTML -> generateAndSaveSingleHtmlCode(userMessage);
-            case MULTI_FILE -> generateAndSaveMultiFileCode(userMessage);
-        };
+        Object codeResult;
+        switch (fileType) {
+            case SINGLE_HTML -> codeResult = aiGenCodeService.genSingleHtmlCode(userMessage);
+            case MULTI_FILE -> codeResult = aiGenCodeService.genMultiFileCode(userMessage);
+            default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, "代码保存类型错误");
+        }
+        File file = CodeSaverExecutor.execute(codeResult, fileType);
+        log.info("Successfully save code file, saved in: {}", file.getName());
+        return file;
     }
 
     /**
@@ -45,6 +53,7 @@ public class AiGenCodeFacade {
      * @param userMessage 用户输入的描述信息
      * @return 保存的目录
      */
+    @Deprecated
     private File generateAndSaveSingleHtmlCode(String userMessage) {
         SingleHtmlCodeResult singleHtmlCodeResult = aiGenCodeService.genSingleHtmlCode(userMessage);
         File file = SaveCodeFileHelper.saveSingleHtmlCodeResult(singleHtmlCodeResult);
@@ -57,6 +66,7 @@ public class AiGenCodeFacade {
      * @param userMessage 用户输入的描述信息
      * @return 保存的目录
      */
+    @Deprecated
     private File generateAndSaveMultiFileCode(String userMessage) {
         MultiFileCodeResult multiFileCodeResult = aiGenCodeService.genMultiFileCode(userMessage);
         File file = SaveCodeFileHelper.saveMultiFileCodeResult(multiFileCodeResult);
@@ -72,10 +82,37 @@ public class AiGenCodeFacade {
      */
     public Flux<String> streamingGenerateAndSaveCodeFile(String userMessage, GenFileTypeEnum fileType) {
         ThrowUtils.throwIf(fileType == null, ErrorCode.BAD_PARAM_ERROR, "生成文件类型不能为空");
-        return switch (fileType) {
-            case SINGLE_HTML -> streamingGenerateAndSaveSingleHtmlCode(userMessage);
-            case MULTI_FILE -> streamingGenerateAndSaveMultiFileCode(userMessage);
-        };
+        Flux<String> streamingResult;
+        switch (fileType) {
+            case SINGLE_HTML -> streamingResult = aiGenCodeService.streamingGenSingleHtmlCode(userMessage);
+            case MULTI_FILE -> streamingResult = aiGenCodeService.streamingGenMultiFileCode(userMessage);
+            default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, "代码保存类型错误");
+        }
+        return streamingGenerateAndSaveCode(streamingResult, fileType);
+    }
+
+    /**
+     * 统一调用: 生成代码并保存到本地（流式）
+     * @param streamingResult 流式生成结果
+     * @param genFileType 生成文件类型
+     * @return 生成的代码文件
+     */
+    private Flux<String> streamingGenerateAndSaveCode(Flux<String> streamingResult, GenFileTypeEnum genFileType) {
+        StringBuilder partialAiMessage = new StringBuilder();
+        return streamingResult
+                .doOnNext(partialAiMessage::append)
+                .doOnComplete(() -> {
+                    try {
+                        String completedAiMessage = partialAiMessage.toString();
+                        // 解析ai生成内容
+                        Object codeResult = CodeParserExecutor.execute(completedAiMessage, genFileType);
+                        // 保存代码文件
+                        File file = CodeSaverExecutor.execute(codeResult, genFileType);
+                        log.info("Successfully save code files from stream result, saved in: {}", file.getName());
+                    } catch (Exception e) {
+                        log.error("Failed to save code files, message: {}", e.getMessage());
+                    }
+                });
     }
 
     /**
@@ -83,6 +120,7 @@ public class AiGenCodeFacade {
      * @param userMessage 用户输入的描述信息
      * @return 保存的目录
      */
+    @Deprecated
     private Flux<String> streamingGenerateAndSaveSingleHtmlCode(String userMessage) {
         Flux<String> streamingResult = aiGenCodeService.streamingGenSingleHtmlCode(userMessage);
         StringBuilder partialAiMessage = new StringBuilder();
@@ -108,6 +146,7 @@ public class AiGenCodeFacade {
      * @param userMessage 用户输入的描述信息
      * @return 保存的目录
      */
+    @Deprecated
     private Flux<String> streamingGenerateAndSaveMultiFileCode(String userMessage) {
         Flux<String> streamingResult = aiGenCodeService.streamingGenMultiFileCode(userMessage);
         StringBuilder partialAiMessage = new StringBuilder();

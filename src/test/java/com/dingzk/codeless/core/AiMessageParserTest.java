@@ -2,6 +2,8 @@ package com.dingzk.codeless.core;
 
 import com.dingzk.codeless.ai.model.MultiFileCodeResult;
 import com.dingzk.codeless.ai.model.SingleHtmlCodeResult;
+import com.dingzk.codeless.core.parser.MultiFileCodeParser;
+import com.dingzk.codeless.core.parser.SingleHtmlCodeParser;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -25,7 +27,8 @@ class AiMessageParserTest {
                 ```
                 这是一段对以上网页的描述
                 """;
-        SingleHtmlCodeResult result = AiMessageParser.parseSingleHtmlCode(codeContent);
+        SingleHtmlCodeParser singleHtmlCodeParser = new SingleHtmlCodeParser();
+        SingleHtmlCodeResult result = singleHtmlCodeParser.parse(codeContent);
         assertNotNull(result);
         assertNotNull(result.getHtmlCode());
     }
@@ -59,7 +62,8 @@ class AiMessageParserTest {
 
                 文件创建完成！
                 """;
-        MultiFileCodeResult result = AiMessageParser.parseMultiFileCode(codeContent);
+        MultiFileCodeParser multiFileCodeParser = new MultiFileCodeParser();
+        MultiFileCodeResult result = multiFileCodeParser.parse(codeContent);
         assertNotNull(result);
         assertNotNull(result.getHtmlCode());
         assertNotNull(result.getCssCode());
