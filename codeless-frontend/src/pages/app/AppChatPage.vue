@@ -144,7 +144,6 @@ const userInput = ref('')
 const streaming = ref(false)
 const currentAiMessage = ref('')
 let abortController: AbortController | null = null
-const isGenerating = ref(false)
 
 // 预览相关
 const previewReady = ref(false)
@@ -298,7 +297,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
       if (streamCompleted) return
 
       streamCompleted = true
-      isGenerating.value = false
+      streaming.value = false
       eventSource?.close()
 
       // 延迟更新预览，确保后端已完成处理
@@ -333,11 +332,11 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
 
     // 处理错误
     eventSource.onerror = function () {
-      if (streamCompleted || !isGenerating.value) return
+      if (streamCompleted || !streaming.value) return
       // 检查是否是正常的连接关闭
       if (eventSource?.readyState === EventSource.CONNECTING) {
         streamCompleted = true
-        isGenerating.value = false
+        streaming.value = false
         eventSource?.close()
 
         setTimeout(async () => {
@@ -360,7 +359,7 @@ const handleError = (error: unknown, aiMessageIndex: number) => {
   messages.value[aiMessageIndex].content = '抱歉，生成过程中出现了错误，请重试。'
   messages.value[aiMessageIndex].loading = false
   message.error('生成失败，请重试')
-  isGenerating.value = false
+  streaming.value = false
 }
 
 // 显示预览
