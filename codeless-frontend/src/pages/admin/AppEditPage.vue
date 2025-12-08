@@ -1,7 +1,7 @@
 <template>
   <div id="appEditPage">
     <a-spin :spinning="loading">
-      <a-form v-model="formState" v-bind="layout" name="app-edit-form" @submit="handleSubmit">
+      <a-form :model="formState" v-bind="layout" name="app-edit-form" @finish="handleSubmit">
         <a-form-item name="name" label="应用名称" :rules="[{ required: true, message: '请输入应用名称' }]">
           <a-input v-model:value="formState.name" :disabled="!canEdit" />
         </a-form-item>
@@ -12,9 +12,9 @@
           </div>
         </a-form-item>
         <a-form-item name="priority" label="优先级" v-if="isAdmin">
-          <a-input-number 
-            v-model:value="formState.priority" 
-            :min="0" 
+          <a-input-number
+            v-model:value="formState.priority"
+            :min="0"
             :max="100"
             style="width: 100%"
             placeholder="优先级（0-100，99为精选）"
@@ -45,10 +45,10 @@
           <a-space>
             <a-button type="primary" html-type="submit" :loading="submitting">提交信息</a-button>
             <a-button @click="handleCancel">取消</a-button>
-            <a-button 
-              v-if="canEdit" 
-              danger 
-              @click="handleDelete" 
+            <a-button
+              v-if="canEdit"
+              danger
+              @click="handleDelete"
               :loading="deleting"
             >
               删除应用
@@ -129,7 +129,7 @@ const fetchAppData = async () => {
 
     if ((res.data.code === 200 || res.data.code === 0) && res.data.data) {
       appData.value = res.data.data
-      
+
       // 检查权限
       if (!isAdmin.value && appData.value.userId !== loginUserStore.loginUser.id) {
         message.error('您没有权限编辑此应用')
@@ -158,7 +158,7 @@ const fetchAppData = async () => {
   }
 }
 
-const handleSubmit = async () => {
+const handleSubmit = async (values: any) => {
   if (!formState.id) {
     message.error('应用ID不存在')
     return

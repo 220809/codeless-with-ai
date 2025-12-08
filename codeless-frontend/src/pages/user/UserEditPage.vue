@@ -1,10 +1,13 @@
 <template>
-  <a-form v-model="formState" v-bind="layout" name="nest-messages" @submit="handleSubmit">
-    <a-form-item name="userName" label="用户名" :rules="[{ validator: usernameValidator }]">
+  <a-form :model="formState" v-bind="layout" name="nest-messages" @finish="handleSubmit">
+    <a-form-item name="username" label="用户名" :rules="[{ validator: usernameValidator }]">
       <a-input v-model:value="formState.username" />
     </a-form-item>
     <a-form-item name="userAccount" label="账号">
-      <a-input v-model:value="formState.userAccount" v-if="loginUserStore.loginUser.userRole === 1"/>
+      <a-input
+        v-model:value="formState.userAccount"
+        v-if="loginUserStore.loginUser.userRole === 1"
+      />
       <span v-else>{{ editUser.userAccount }}</span>
     </a-form-item>
     <a-form-item name="userIntro" label="用户简介">
@@ -59,14 +62,17 @@ const props = defineProps<{
 }>()
 const router = useRouter()
 
-const loginUserStore = useLoginUserStore();
+const loginUserStore = useLoginUserStore()
 
 const formState = reactive<API.LoginUserVo>({
   ...props.editUser,
 })
 
-const handleSubmit = async () => {
-  const res = await updateUser(formState)
+const handleSubmit = async (values: any) => {
+  const res = await updateUser({
+    id: formState.id,
+    ...values,
+  })
   if (res.data.code === 200) {
     message.success('修改信息成功!')
     if (window.location.pathname === '/user/edit') {
