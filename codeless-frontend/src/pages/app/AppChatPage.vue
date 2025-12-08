@@ -201,7 +201,6 @@ const sendMessage = async (content: string) => {
     loading: true,
   })
 
-
   // 滚动到底部
   await scrollToBottom()
 
@@ -326,7 +325,6 @@ const handleError = (error: unknown, aiMessageIndex: number) => {
   isGenerating.value = false
 }
 
-
 // 显示预览
 const showPreview = () => {
   if (!appData.value.genFileType || !appData.value.id) return
@@ -447,15 +445,19 @@ onMounted(() => {
   flex: 1;
   display: flex;
   overflow: hidden;
+  min-width: 0;
 }
 
 /* 左侧对话区域 */
 .chat-area {
   flex: 1;
+  min-width: 0;
+  max-width: 50%;
   display: flex;
   flex-direction: column;
   background: #fff;
   border-right: 1px solid #e8e8e8;
+  overflow: hidden;
 }
 
 .messages-container {
@@ -470,6 +472,7 @@ onMounted(() => {
 .message-item {
   display: flex;
   max-width: 80%;
+  min-width: 0;
 }
 
 .user-message {
@@ -484,6 +487,10 @@ onMounted(() => {
   padding: 12px 16px;
   border-radius: 12px;
   word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .user-message .message-content {
@@ -498,6 +505,11 @@ onMounted(() => {
 
 .message-text {
   line-height: 1.6;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .message-text :deep(pre) {
@@ -523,10 +535,12 @@ onMounted(() => {
 }
 
 @keyframes blink {
-  0%, 50% {
+  0%,
+  50% {
     opacity: 1;
   }
-  51%, 100% {
+  51%,
+  100% {
     opacity: 0;
   }
 }
@@ -547,10 +561,13 @@ onMounted(() => {
 /* 右侧预览区域 */
 .preview-area {
   flex: 1;
+  min-width: 0;
+  max-width: 50%;
   background: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
 .preview-placeholder {
