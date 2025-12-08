@@ -10,10 +10,7 @@ import com.dingzk.codeless.constant.UserConstant;
 import com.dingzk.codeless.exception.BusinessException;
 import com.dingzk.codeless.exception.ErrorCode;
 import com.dingzk.codeless.exception.ThrowUtils;
-import com.dingzk.codeless.model.dto.app.AppAddRequest;
-import com.dingzk.codeless.model.dto.app.AppAdminUpdateRequest;
-import com.dingzk.codeless.model.dto.app.AppSearchRequest;
-import com.dingzk.codeless.model.dto.app.AppUpdateRequest;
+import com.dingzk.codeless.model.dto.app.*;
 import com.dingzk.codeless.model.entity.User;
 import com.dingzk.codeless.model.vo.AppVo;
 import com.dingzk.codeless.service.AppService;
@@ -48,6 +45,16 @@ public class AppController {
 
     @Resource
     private UserService userService;
+
+    @PostMapping("/deploy")
+    @Operation(summary = "部署应用")
+    public BaseResponse<String> deployApp(@RequestBody AppDeployRequest appDeployRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(appDeployRequest == null, ErrorCode.BAD_PARAM_ERROR, "部署请求不能为空");
+        User loginUser = userService.getLoginUser(request);
+        Long appId = appDeployRequest.getAppId();
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.BAD_PARAM_ERROR, "非法的appId");
+        return RespUtils.success(appService.deployApp(appId, loginUser));
+    }
 
     @GetMapping(value = "/chat/codegen", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "对话生成代码")

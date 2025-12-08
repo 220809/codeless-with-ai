@@ -1,7 +1,9 @@
 package com.dingzk.codeless.service.impl;
 
 import com.dingzk.codeless.common.SearchRequest;
+import com.dingzk.codeless.constant.AppConstant;
 import com.dingzk.codeless.core.AiGenCodeFacade;
+import com.dingzk.codeless.exception.BusinessException;
 import com.dingzk.codeless.exception.ErrorCode;
 import com.dingzk.codeless.exception.ThrowUtils;
 import com.dingzk.codeless.mapper.AppMapper;
@@ -20,10 +22,14 @@ import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import jakarta.annotation.Resource;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
+import java.io.File;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -64,6 +70,48 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private static final int INITIAL_PROMPT_MAX_LENGTH = 10000;
 
     private static final int USER_MESSAGE_MAX_LENGTH = 1000;
+
+    @Override
+    public String deployApp(Long appId, User loginUser) {
+        // 1. 权限校验: 用户、app权限校验
+        App app = checkAppPermission(appId, loginUser, true);
+
+        // 2. 检查 deploy_key，没有则新生成
+        String deployKey = app.getDeployKey();
+        if (StringUtils.isBlank(deployKey)) {
+            deployKey = RandomStringUtils.secure().nextAlphanumeric(6);
+        }
+
+        // 3. 拷贝应用文件到部署目录
+        // 检查源目录
+        String sourceDirPath = AppConstant.CODE_FILE_SAVE_BASE_PATH;
+        String appBaseDirName = StringUtils.join(app.getGenFileType(), "_", app.getId());
+        String appBaseDirPath = StringUtils.join(sourceDirPath, File.separator, appBaseDirName);
+        File appBaseDir = new File(appBaseDirPath);
+        ThrowUtils.throwIf(!appBaseDir.exists() || !appBaseDir.isDirectory(),
+                ErrorCode.SYSTEM_ERROR, "应用文件不存在");
+        // 检查应用部署目录（目标目录）
+        String deployBaseDirPath = AppConstant.CODE_FILE_DEPLOY_BASE_PATH;
+        String appDeployDirPath = StringUtils.join(deployBaseDirPath, File.separator, deployKey);
+        File appDeployDir = new File(appDeployDirPath);
+        // 拷贝文件
+        try {
+            FileUtils.copyDirectory(appBaseDir, appDeployDir);
+        } catch (IOException e) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "拷贝应用文件失败: " + e.getMessage());
+        }
+
+        // 4. 更新 app 部署信息
+        App updateApp = new App();
+        updateApp.setId(appId);
+        updateApp.setDeployKey(deployKey);
+        updateApp.setDeployedTime(LocalDateTime.now());
+        boolean updateResult = this.updateById(updateApp);
+        ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR, "更新应用部署信息失败");
+
+        // 返回应用访问url
+        return StringUtils.join(AppConstant.WEB_DEPLOY_BASE_URL, deployKey);
+    }
 
     @Override
     public Flux<String> genCodeFromChat(Long appId, String userMessage, User loginUser) {

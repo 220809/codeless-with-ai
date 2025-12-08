@@ -1,5 +1,6 @@
 package com.dingzk.codeless.core.saver;
 
+import com.dingzk.codeless.constant.AppConstant;
 import com.dingzk.codeless.exception.BusinessException;
 import com.dingzk.codeless.exception.ErrorCode;
 import com.dingzk.codeless.model.enums.GenFileTypeEnum;
@@ -22,7 +23,7 @@ public abstract class AbstractCodeSaver<T> {
     /**
      * 代码文件保存根路径
      */
-    private static final String CODE_FILE_SAVE_ROOT_PATH = System.getProperty("user.dir") + "/tmp/code_output";
+    private static final String CODE_FILE_SAVE_ROOT_PATH = AppConstant.CODE_FILE_SAVE_BASE_PATH;
     public final File save(T codeResult, Long appId) {
         // 1. 校验参数
         validateBeforeSave(codeResult);

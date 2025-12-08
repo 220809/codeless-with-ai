@@ -20,6 +20,14 @@ import reactor.core.publisher.Flux;
 public interface AppService extends IService<App> {
 
     /**
+     * 部署应用
+     * @param appId 应用id
+     * @param loginUser 登录用户
+     * @return 应用访问url
+     */
+    String deployApp(Long appId, User loginUser);
+
+    /**
      * 对话生成代码
      * @param appId 应用id
      * @param userMessage 用户消息
