@@ -2,7 +2,11 @@
   <div id="appEditPage">
     <a-spin :spinning="loading">
       <a-form :model="formState" v-bind="layout" name="app-edit-form" @finish="handleSubmit">
-        <a-form-item name="name" label="应用名称" :rules="[{ required: true, message: '请输入应用名称' }]">
+        <a-form-item
+          name="name"
+          label="应用名称"
+          :rules="[{ required: true, message: '请输入应用名称' }]"
+        >
           <a-input v-model:value="formState.name" :disabled="!canEdit" />
         </a-form-item>
         <a-form-item name="cover" label="应用封面" v-if="isAdmin">
@@ -39,18 +43,15 @@
           </a-space>
         </a-form-item>
         <a-form-item name="createTime" label="创建时间" v-if="isAdmin">
-          <span>{{ formState.createTime ? dayjs(formState.createTime).format('YYYY-MM-DD HH:mm:ss') : '-' }}</span>
+          <span>{{
+            formState.createTime ? dayjs(formState.createTime).format('YYYY-MM-DD HH:mm:ss') : '-'
+          }}</span>
         </a-form-item>
         <a-form-item :wrapper-col="{ ...layout.wrapperCol, offset: 4 }">
           <a-space>
             <a-button type="primary" html-type="submit" :loading="submitting">提交信息</a-button>
             <a-button @click="handleCancel">取消</a-button>
-            <a-button
-              v-if="canEdit"
-              danger
-              @click="handleDelete"
-              :loading="deleting"
-            >
+            <a-button v-if="canEdit" danger @click="handleDelete" :loading="deleting">
               删除应用
             </a-button>
           </a-space>
@@ -61,7 +62,14 @@
 </template>
 <script lang="ts" setup>
 import { reactive, ref, onMounted, computed } from 'vue'
-import { updateApp, getAppById, adminGetAppById, adminUpdateApp, deleteApp, adminDeleteApp } from '@/api/app.ts'
+import {
+  updateApp,
+  getAppById,
+  adminGetAppById,
+  adminUpdateApp,
+  deleteApp,
+  adminDeleteApp,
+} from '@/api/app.ts'
 import { message, Modal } from 'ant-design-vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
