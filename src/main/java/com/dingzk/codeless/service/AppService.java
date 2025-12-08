@@ -9,6 +9,7 @@ import com.dingzk.codeless.model.entity.User;
 import com.dingzk.codeless.model.vo.AppVo;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.service.IService;
+import reactor.core.publisher.Flux;
 
 /**
  * 应用服务层
@@ -17,6 +18,15 @@ import com.mybatisflex.core.service.IService;
  * @date 2025/12/7 14:45
  */
 public interface AppService extends IService<App> {
+
+    /**
+     * 对话生成代码
+     * @param appId 应用id
+     * @param userMessage 用户消息
+     * @param loginUser 登录用户
+     * @return 生成代码结果
+     */
+    Flux<String> genCodeFromChat(Long appId, String userMessage, User loginUser);
 
     /**
      * 创建应用

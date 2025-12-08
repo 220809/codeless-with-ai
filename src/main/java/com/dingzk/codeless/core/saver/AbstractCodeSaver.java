@@ -5,7 +5,6 @@ import com.dingzk.codeless.exception.ErrorCode;
 import com.dingzk.codeless.model.enums.GenFileTypeEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
@@ -24,11 +23,11 @@ public abstract class AbstractCodeSaver<T> {
      * 代码文件保存根路径
      */
     private static final String CODE_FILE_SAVE_ROOT_PATH = System.getProperty("user.dir") + "/tmp/code_output";
-    public final File save(T codeResult) {
+    public final File save(T codeResult, Long appId) {
         // 1. 校验参数
         validateBeforeSave(codeResult);
         // 2. 生成保存代码根目录
-        String fileBaseDir = createUniqueFileDir();
+        String fileBaseDir = createUniqueFileDir(appId);
         // 3. 保存代码文件
         saveFiles(fileBaseDir, codeResult);
         // 4. 返回保存的文件目录
@@ -39,9 +38,9 @@ public abstract class AbstractCodeSaver<T> {
      * 生成唯一文件目录
      * @return 文件目录路径
      */
-    private String createUniqueFileDir() {
+    private String createUniqueFileDir(Long appId) {
         String bizType = genFileTypeEnum().getName();
-        String dirName = StringUtils.join(bizType, "_", RandomStringUtils.secure().nextAlphanumeric(16));
+        String dirName = StringUtils.join(bizType, "_", appId);
         String dirPath = StringUtils.join(CODE_FILE_SAVE_ROOT_PATH, File.separator, dirName);
         try {
             FileUtils.forceMkdir(new File(dirPath));

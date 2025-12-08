@@ -18,15 +18,21 @@ class AiGenCodeFacadeTest {
     @Resource
     private AiGenCodeFacade aiGenCodeFacade;
 
+    private static final Long TEST_APP_ID = 1L;
+
     @Test
     void generateAndSaveCodeFileTest() {
-        File file = aiGenCodeFacade.generateAndSaveCodeFile("帮我生成一个登录页面, 代码限制在50行以内", GenFileTypeEnum.MULTI_FILE);
+        File file = aiGenCodeFacade
+                .generateAndSaveCodeFile("帮我生成一个登录页面, 代码限制在50行以内",
+                        GenFileTypeEnum.MULTI_FILE, TEST_APP_ID);
         Assertions.assertNotNull(file);
     }
 
     @Test
     void streamingGenerateAndSaveCodeFileTest() {
-        Flux<String> fluxResult = aiGenCodeFacade.streamingGenerateAndSaveCodeFile("帮我生成一个注册页面, 代码限制在50行以内", GenFileTypeEnum.MULTI_FILE);
+        Flux<String> fluxResult = aiGenCodeFacade
+                .streamingGenerateAndSaveCodeFile("帮我生成一个注册页面, 代码限制在50行以内",
+                        GenFileTypeEnum.MULTI_FILE, TEST_APP_ID);
         List<String> stringList = fluxResult.collectList().block();
         assertNotNull(stringList);
         String stringResult = String.join("", stringList);

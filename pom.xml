@@ -124,6 +124,14 @@
             <artifactId>langchain4j-reactor</artifactId>
             <version>1.9.1-beta17</version>
         </dependency>
+
+        <!-- Hutool-json -->
+        <!-- https://mvnrepository.com/artifact/cn.hutool/hutool-json -->
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-json</artifactId>
+            <version>5.8.42</version>
+        </dependency>
     </dependencies>
 
     <build>

@@ -1,5 +1,6 @@
 package com.dingzk.codeless.controller;
 
+import cn.hutool.json.JSONUtil;
 import com.dingzk.codeless.annotation.CheckPermission;
 import com.dingzk.codeless.common.BaseResponse;
 import com.dingzk.codeless.common.DeleteRequest;
@@ -8,6 +9,7 @@ import com.dingzk.codeless.constant.AppConstant;
 import com.dingzk.codeless.constant.UserConstant;
 import com.dingzk.codeless.exception.BusinessException;
 import com.dingzk.codeless.exception.ErrorCode;
+import com.dingzk.codeless.exception.ThrowUtils;
 import com.dingzk.codeless.model.dto.app.AppAddRequest;
 import com.dingzk.codeless.model.dto.app.AppAdminUpdateRequest;
 import com.dingzk.codeless.model.dto.app.AppSearchRequest;
@@ -21,7 +23,14 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.http.MediaType;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import java.util.Map;
 
 /**
  * 应用控制器
@@ -39,6 +48,30 @@ public class AppController {
 
     @Resource
     private UserService userService;
+
+    @GetMapping(value = "/chat/codegen", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "对话生成代码")
+    public Flux<ServerSentEvent<String>> genCodeFromChat(@RequestParam Long appId, @RequestParam String userMessage, HttpServletRequest request) {
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.BAD_PARAM_ERROR, "非法的appId");
+        ThrowUtils.throwIf(StringUtils.isBlank(userMessage), ErrorCode.BAD_PARAM_ERROR, "用户提示词不能为空");
+        User loginUser = userService.getLoginUser(request);
+
+        Flux<String> streamingResult = appService.genCodeFromChat(appId, userMessage, loginUser);
+
+        return streamingResult
+                .map(chunk -> {
+                    Map<String, String> wrapper = Map.of("r", chunk);
+                    return ServerSentEvent.<String>builder()
+                            .data(JSONUtil.toJsonStr(wrapper))
+                            .build();
+                })
+                .concatWith(Mono.just(
+                        ServerSentEvent.<String>builder()
+                                .event("done")
+                                .data("")
+                                .build()
+                ));
+    }
 
     @PostMapping("/add")
     @Operation(summary = "创建应用")

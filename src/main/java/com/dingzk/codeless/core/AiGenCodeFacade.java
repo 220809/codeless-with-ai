@@ -33,7 +33,7 @@ public class AiGenCodeFacade {
      * @param fileType 生成文件类型
      * @return 生成的代码文件
      */
-    public File generateAndSaveCodeFile(String userMessage, GenFileTypeEnum fileType) {
+    public File generateAndSaveCodeFile(String userMessage, GenFileTypeEnum fileType, Long appId) {
         ThrowUtils.throwIf(fileType == null, ErrorCode.BAD_PARAM_ERROR, "生成文件类型不能为空");
         Object codeResult;
         switch (fileType) {
@@ -41,7 +41,7 @@ public class AiGenCodeFacade {
             case MULTI_FILE -> codeResult = aiGenCodeService.genMultiFileCode(userMessage);
             default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, "代码保存类型错误");
         }
-        File file = CodeSaverExecutor.execute(codeResult, fileType);
+        File file = CodeSaverExecutor.execute(codeResult, fileType, appId);
         log.info("Successfully save code file, saved in: {}", file.getName());
         return file;
     }
@@ -52,7 +52,7 @@ public class AiGenCodeFacade {
      * @param fileType 生成文件类型
      * @return 生成的代码文件
      */
-    public Flux<String> streamingGenerateAndSaveCodeFile(String userMessage, GenFileTypeEnum fileType) {
+    public Flux<String> streamingGenerateAndSaveCodeFile(String userMessage, GenFileTypeEnum fileType, Long appId) {
         ThrowUtils.throwIf(fileType == null, ErrorCode.BAD_PARAM_ERROR, "生成文件类型不能为空");
         Flux<String> streamingResult;
         switch (fileType) {
@@ -60,7 +60,7 @@ public class AiGenCodeFacade {
             case MULTI_FILE -> streamingResult = aiGenCodeService.streamingGenMultiFileCode(userMessage);
             default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, "代码保存类型错误");
         }
-        return streamingGenerateAndSaveCode(streamingResult, fileType);
+        return streamingGenerateAndSaveCode(streamingResult, fileType, appId);
     }
 
     /**
@@ -69,7 +69,7 @@ public class AiGenCodeFacade {
      * @param genFileType 生成文件类型
      * @return 生成的代码文件
      */
-    private Flux<String> streamingGenerateAndSaveCode(Flux<String> streamingResult, GenFileTypeEnum genFileType) {
+    private Flux<String> streamingGenerateAndSaveCode(Flux<String> streamingResult, GenFileTypeEnum genFileType, Long appId) {
         StringBuilder partialAiMessage = new StringBuilder();
         return streamingResult
                 .doOnNext(partialAiMessage::append)
@@ -79,7 +79,7 @@ public class AiGenCodeFacade {
                         // 解析ai生成内容
                         Object codeResult = CodeParserExecutor.execute(completedAiMessage, genFileType);
                         // 保存代码文件
-                        File file = CodeSaverExecutor.execute(codeResult, genFileType);
+                        File file = CodeSaverExecutor.execute(codeResult, genFileType, appId);
                         log.info("Successfully save code files from stream result, saved in: {}", file.getName());
                     } catch (Exception e) {
                         log.error("Failed to save code files, message: {}", e.getMessage());

@@ -1,6 +1,7 @@
 package com.dingzk.codeless.service.impl;
 
 import com.dingzk.codeless.common.SearchRequest;
+import com.dingzk.codeless.core.AiGenCodeFacade;
 import com.dingzk.codeless.exception.ErrorCode;
 import com.dingzk.codeless.exception.ThrowUtils;
 import com.dingzk.codeless.mapper.AppMapper;
@@ -21,6 +22,7 @@ import jakarta.annotation.Resource;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -41,6 +43,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Resource
     private UserService userService;
 
+    @Resource
+    private AiGenCodeFacade aiGenCodeFacade;
+
     /**
      * 应用名称最大长度
      */
@@ -57,6 +62,24 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      * 初始prompt最大长度
      */
     private static final int INITIAL_PROMPT_MAX_LENGTH = 10000;
+
+    private static final int USER_MESSAGE_MAX_LENGTH = 1000;
+
+    @Override
+    public Flux<String> genCodeFromChat(Long appId, String userMessage, User loginUser) {
+        // 1. 参数校验
+        // 校验 app 是否存在、用户是否存在、用户是否有app权限
+        App app = checkAppPermission(appId, loginUser, true);
+        // 校验 message 是否有内容
+        ThrowUtils.throwIf(StringUtils.isBlank(userMessage), ErrorCode.BAD_PARAM_ERROR, "用户提示词不能为空");
+        // 校验 message 长度
+        ThrowUtils.throwIf(userMessage.length() > USER_MESSAGE_MAX_LENGTH, ErrorCode.BAD_PARAM_ERROR, "用户提示词过长");
+        // 校验文件生成类型
+        GenFileTypeEnum genFileType = GenFileTypeEnum.getByName(app.getGenFileType());
+        ThrowUtils.throwIf(genFileType == null, ErrorCode.SYSTEM_ERROR, "存在非法的文件生成类型");
+
+        return aiGenCodeFacade.streamingGenerateAndSaveCodeFile(userMessage, genFileType, app.getId());
+    }
 
     @Override
     public long addApp(AppAddRequest appAddRequest, User loginUser) {
