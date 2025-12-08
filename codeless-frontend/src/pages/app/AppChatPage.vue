@@ -42,19 +42,21 @@
 
         <!-- 用户消息输入框 -->
         <div class="input-area">
-          <a-textarea
-            v-model:value="userInput"
-            :placeholder="'输入你的消息...'"
-            :auto-size="{ minRows: 2, maxRows: 6 }"
-            :disabled="streaming || !appData.id"
-            @keydown.enter.ctrl="handleSendMessage"
-            @keydown.enter.exact.prevent="handleSendMessage"
-          />
+          <a-tooltip :title="!canEdit ? '无法在别人的作品下对话哦~' : ''" placement="top">
+            <a-textarea
+              v-model:value="userInput"
+              :placeholder="canEdit ? '输入你的消息...' : '无法在别人的作品下对话哦~'"
+              :auto-size="{ minRows: 2, maxRows: 6 }"
+              :disabled="streaming || !appData.id || !canEdit"
+              @keydown.enter.ctrl="handleSendMessage"
+              @keydown.enter.exact.prevent="handleSendMessage"
+            />
+          </a-tooltip>
           <div class="input-actions">
             <a-button
               type="primary"
               :loading="streaming"
-              :disabled="!userInput.trim() || !appData.id"
+              :disabled="!userInput.trim() || !appData.id || !canEdit"
               @click="handleSendMessage"
             >
               发送
@@ -150,6 +152,16 @@ const previewReady = ref(false)
 const previewUrl = ref('')
 const canDeploy = computed(() => previewReady.value && appData.value.genFileType)
 
+const loginUserStore = useLoginUserStore()
+
+// 权限检查：是否是自己的作品
+const canEdit = computed(() => {
+  if (!appData.value.userId || !loginUserStore.loginUser.id) {
+    return false
+  }
+  return appData.value.userId === loginUserStore.loginUser.id
+})
+
 const appId = ref<any>();
 // 消息容器引用（用于自动滚动）
 const messagesContainerRef = ref<HTMLElement>()
@@ -174,8 +186,10 @@ const fetchAppData = async () => {
         showPreview();
       }
 
-      // 如果有初始提示词，自动发送
-      if (appData.value.initialPrompt && messages.value.length === 0) {
+      // 检查是否有view参数，如果有则不自动发送消息
+      // 目前使用 viewParam 防止查看对话时发送ai消息
+      const viewParam = route.query.view
+      if (!viewParam && appData.value.initialPrompt && messages.value.length === 0) {
         await sendInitialMessage(appData.value.initialPrompt)
       }
     } else {

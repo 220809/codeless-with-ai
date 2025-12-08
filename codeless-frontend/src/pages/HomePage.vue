@@ -62,7 +62,6 @@
               :key="app.id"
               class="app-card"
               :hoverable="true"
-              @click="handleAppClick(app)"
             >
               <template #cover>
                 <div class="app-cover">
@@ -74,6 +73,21 @@
                   />
                   <div v-else class="cover-placeholder">
                     <FileImageOutlined class="placeholder-icon" />
+                  </div>
+                  <div class="app-cover-buttons">
+                    <a-button
+                      v-if="app.deployKey"
+                      class="cover-btn view-works-btn"
+                      @click.stop="handleViewDeploy(app)"
+                    >
+                      查看作品
+                    </a-button>
+                    <a-button
+                      class="cover-btn view-chat-btn"
+                      @click.stop="handleViewChat(app)"
+                    >
+                      查看对话
+                    </a-button>
                   </div>
                 </div>
               </template>
@@ -119,7 +133,6 @@
               :key="app.id"
               class="app-card"
               :hoverable="true"
-              @click="handleAppClick(app)"
             >
               <template #cover>
                 <div class="app-cover">
@@ -131,6 +144,21 @@
                   />
                   <div v-else class="cover-placeholder">
                     <FileImageOutlined class="placeholder-icon" />
+                  </div>
+                  <div class="app-cover-buttons">
+                    <a-button
+                      v-if="app.deployKey"
+                      class="cover-btn view-works-btn"
+                      @click.stop="handleViewDeploy(app)"
+                    >
+                      查看作品
+                    </a-button>
+                    <a-button
+                      class="cover-btn view-chat-btn"
+                      @click.stop="handleViewChat(app)"
+                    >
+                      查看对话
+                    </a-button>
                   </div>
                 </div>
               </template>
@@ -311,13 +339,21 @@ const handleFeaturedAppsSearch = () => {
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
 
-// 应用点击
-const handleAppClick = (app: API.AppVo) => {
+// 查看对话
+const handleViewChat = (app: API.AppVo) => {
   if (!app.id) return
   // 跳转到应用生成对话页面
   // 保持id为原始类型，避免精度丢失
   const appId = app.id
-  router.push(`/app/chat?id=${appId}`)
+  router.push(`/app/chat?id=${appId}${app.deployKey ? '&view=1' : ''}`);
+}
+
+// 查看作品
+const handleViewDeploy = (app: API.AppVo) => {
+  if (!app.deployKey) return
+  // 打开部署地址：localhost/{deployKey}
+  const deployUrl = `http://localhost/${app.deployKey}`
+  window.open(deployUrl, '_blank')
 }
 
 // 格式化时间
@@ -533,6 +569,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  position: relative;
 }
 
 .cover-image {
@@ -553,6 +590,62 @@ onMounted(() => {
 .placeholder-icon {
   font-size: 48px;
   color: #cbd5e1;
+}
+
+.app-cover-buttons {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.app-card:hover .app-cover-buttons {
+  opacity: 1;
+}
+
+.app-card:hover .cover-image,
+.app-card:hover .cover-placeholder {
+  filter: blur(4px);
+  transition: filter 0.3s ease;
+}
+
+.cover-btn {
+  height: 40px;
+  padding: 0 24px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.view-works-btn {
+  background: #4a5568;
+  color: #ffffff;
+}
+
+.view-works-btn:hover {
+  background: #2d3748;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.view-chat-btn {
+  background: #ffffff;
+  color: #1e293b;
+  border: 1px solid #e2e8f0;
+}
+
+.view-chat-btn:hover {
+  background: #f8fafc;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .app-title {
