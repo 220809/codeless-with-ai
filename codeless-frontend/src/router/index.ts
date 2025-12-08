@@ -3,6 +3,7 @@ import HomePage from '@/pages/HomePage.vue'
 import AdminUserPage from '@/pages/admin/AdminUserPage.vue'
 import AdminAppPage from '@/pages/admin/AdminAppPage.vue'
 import AppEditPage from '@/pages/admin/AppEditPage.vue'
+import AppChatPage from '@/pages/app/AppChatPage.vue'
 import UserLoginPage from '@/pages/user/UserLoginPage.vue'
 import UserRegisterPage from '@/pages/user/UserRegisterPage.vue'
 import UserHomePage from '@/pages/user/UserHomePage.vue'
@@ -43,6 +44,11 @@ const router = createRouter({
       path: '/app/edit',
       name: 'app_edit',
       component: AppEditPage,
+    },
+    {
+      path: '/app/chat',
+      name: 'app_chat',
+      component: AppChatPage,
     },
     {
       path: '/user/login',

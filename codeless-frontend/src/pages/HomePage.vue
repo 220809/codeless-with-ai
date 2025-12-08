@@ -226,12 +226,8 @@ const handleSend = async () => {
       promptInput.value = ''
       // 刷新我的应用列表
       await fetchMyApps()
-      // 跳转到应用编辑页面
-      if (loginUserStore.loginUser.userRole === 1) {
-        router.push(`/admin/app/edit?id=${appId}`)
-      } else {
-        router.push(`/app/edit?id=${appId}`)
-      }
+      // 跳转到应用生成对话页面
+      router.push(`/app/chat?id=${appId}`)
     } else {
       message.error('创建失败: ' + (res.data.message || '未知错误'))
     }
@@ -318,14 +314,10 @@ const loginUserStore = useLoginUserStore()
 // 应用点击
 const handleAppClick = (app: API.AppVo) => {
   if (!app.id) return
-  // 根据用户角色跳转到不同的编辑页面
-  if (loginUserStore.loginUser.userRole === 1) {
-    // 管理员跳转到管理员编辑页面
-    router.push(`/admin/app/edit?id=${app.id}`)
-  } else {
-    // 普通用户跳转到用户编辑页面
-    router.push(`/app/edit?id=${app.id}`)
-  }
+  // 跳转到应用生成对话页面
+  // 保持id为原始类型，避免精度丢失
+  const appId = app.id
+  router.push(`/app/chat?id=${appId}`)
 }
 
 // 格式化时间
