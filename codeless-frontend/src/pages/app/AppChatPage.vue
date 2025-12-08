@@ -32,7 +32,7 @@
               <div class="message-text" v-html="formatMessage(msg.content)"></div>
             </div>
           </div>
-          <div v-if="streaming" class="message-item ai-message">
+          <div class="message-item ai-message">
             <div class="message-content">
               <div class="message-text" v-html="formatMessage(currentAiMessage)"></div>
               <span class="typing-indicator">▋</span>
@@ -84,6 +84,8 @@ import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { getAppById, genCodeFromChat, deployApp } from '@/api/app.ts'
+import request from '@/request.ts'
+import { useLoginUserStore } from '@/stores/loginUser.ts'
 
 const route = useRoute()
 const router = useRouter()
@@ -95,41 +97,49 @@ const loading = ref(false)
 // 消息列表
 interface Message {
   type: 'user' | 'ai'
-  content: string
+  content: string,
+  loading?: boolean,
 }
 
 const messages = ref<Message[]>([])
 const userInput = ref('')
 const streaming = ref(false)
 const currentAiMessage = ref('')
-let eventSource: EventSource | null = null
+let abortController: AbortController | null = null
+const isGenerating = ref(false)
 
 // 预览相关
 const previewReady = ref(false)
 const previewUrl = ref('')
 const canDeploy = computed(() => previewReady.value && appData.value.genFileType)
 
+const appId = ref<any>();
 // 消息容器引用（用于自动滚动）
 const messagesContainerRef = ref<HTMLElement>()
 
 // 获取应用信息
 const fetchAppData = async () => {
-  const appId = route.query.id as string
-  if (!appId) {
+  const id = route.query.id as string
+  if (!id) {
     message.error('缺少应用ID')
     router.back()
     return
   }
+  appId.value = id;
 
   loading.value = true
   try {
-    const res = await getAppById({ id: appId as any })
-    if ((res.data.code === 200 || res.data.code === 0) && res.data.data) {
+    const res = await getAppById({ id: appId.value as any })
+    if (res.data.code === 200 && res.data.data) {
       appData.value = res.data.data
 
+      if (messages.value.length >= 2) {
+        showPreview();
+      }
+
       // 如果有初始提示词，自动发送
-      if (appData.value.initialPrompt) {
-        await sendMessage(appData.value.initialPrompt)
+      if (appData.value.initialPrompt && messages.value.length === 0) {
+        await sendInitialMessage(appData.value.initialPrompt)
       }
     } else {
       message.error('获取应用信息失败: ' + (res.data.message || '未知错误'))
@@ -150,9 +160,32 @@ const handleSendMessage = async () => {
   userInput.value = ''
 }
 
+const sendInitialMessage = async (prompt: string) => {
+  // 添加用户消息
+  messages.value.push({
+    type: 'user',
+    content: prompt,
+  })
+
+  // 添加AI消息占位符
+  const aiMessageIndex = messages.value.length
+  messages.value.push({
+    type: 'ai',
+    content: '',
+    loading: true,
+  })
+
+  await nextTick()
+  scrollToBottom()
+
+  // 开始生成
+  streaming.value = true
+  await generateCode(prompt, aiMessageIndex)
+}
+
 // 发送消息并处理SSE流
 const sendMessage = async (content: string) => {
-  if (!appData.value.id) return
+  if (!content.trim() || streaming.value) return;
 
   // 添加用户消息
   messages.value.push({
@@ -160,87 +193,139 @@ const sendMessage = async (content: string) => {
     content: content,
   })
 
+  // 添加AI消息占位符
+  const aiMessageIndex = messages.value.length
+  messages.value.push({
+    type: 'ai',
+    content: '',
+    loading: true,
+  })
+
+
   // 滚动到底部
   await scrollToBottom()
 
   // 开始流式接收
   streaming.value = true
-  currentAiMessage.value = ''
+  await generateCode(content, aiMessageIndex);
+}
 
-  // 关闭之前的连接
-  if (eventSource) {
-    eventSource.close()
-    eventSource = null
-  }
+// 生成代码 - 使用 EventSource 处理流式响应
+const generateCode = async (userMessage: string, aiMessageIndex: number) => {
+  let eventSource: EventSource | null = null
+  let streamCompleted = false
 
   try {
-    // 构建SSE URL
-    const baseURL = 'http://localhost:8888/api'
-    const url = `${baseURL}/app/chat/codegen?appId=${appData.value.id}&userMessage=${encodeURIComponent(content)}`
+    // 获取 axios 配置的 baseURL
+    const baseURL = request.defaults.baseURL;
 
-    // 创建EventSource
-    eventSource = new EventSource(url)
+    // 构建URL参数
+    const params = new URLSearchParams({
+      appId: appId.value || '',
+      userMessage,
+    })
 
-    let streamEnded = false
+    const url = `${baseURL}/app/chat/codegen?${params}`
 
-    const finishStream = () => {
-      if (streamEnded) return
-      streamEnded = true
+    // 创建 EventSource 连接
+    eventSource = new EventSource(url, {
+      withCredentials: true,
+    })
 
-      if (eventSource) {
-        eventSource.close()
-        eventSource = null
-      }
+    let fullContent = ''
 
-      streaming.value = false
+    // 处理接收到的消息
+    eventSource.onmessage = function (event) {
+      if (streamCompleted) return
 
-      // 保存AI消息
-      if (currentAiMessage.value.trim()) {
-        messages.value.push({
-          type: 'ai',
-          content: currentAiMessage.value,
-        })
-        currentAiMessage.value = ''
+      try {
+        // 解析JSON包装的数据
+        const parsed = JSON.parse(event.data)
+        const content = parsed.r
 
-        // 生成完成后，显示预览
-        showPreview()
-      }
-    }
-
-    eventSource.onmessage = (event) => {
-      if (event.data) {
-        // 检查是否是结束标记
-        if (event.data === '[DONE]' || event.data.trim() === '') {
-          finishStream()
-          return
+        // 拼接内容
+        if (content !== undefined && content !== null) {
+          fullContent += content
+          messages.value[aiMessageIndex].content = fullContent
+          messages.value[aiMessageIndex].loading = false
+          scrollToBottom()
         }
-
-        currentAiMessage.value += event.data
-        // 实时滚动到底部
-        scrollToBottom()
+      } catch (error) {
+        console.error('解析消息失败:', error)
+        handleError(error, aiMessageIndex)
       }
     }
 
-    eventSource.onerror = (error) => {
-      console.error('SSE error:', error)
-      // EventSource在错误时会自动重连，我们需要检查readyState
-      if (eventSource?.readyState === EventSource.CLOSED) {
-        finishStream()
+    // 处理done事件
+    eventSource.addEventListener('done', function () {
+      if (streamCompleted) return
+
+      streamCompleted = true
+      isGenerating.value = false
+      eventSource?.close()
+
+      // 延迟更新预览，确保后端已完成处理
+      setTimeout(async () => {
+        await fetchAppData()
+        showPreview()
+      }, 1000)
+    })
+
+    // 处理business-error事件（后端限流等错误）
+    eventSource.addEventListener('business-error', function (event: MessageEvent) {
+      if (streamCompleted) return
+
+      try {
+        const errorData = JSON.parse(event.data)
+        console.error('SSE业务错误事件:', errorData)
+
+        // 显示具体的错误信息
+        const errorMessage = errorData.message || '生成过程中出现错误'
+        messages.value[aiMessageIndex].content = `❌ ${errorMessage}`
+        messages.value[aiMessageIndex].loading = false
+        message.error(errorMessage)
+
+        streamCompleted = true
+        streaming.value = false
+        eventSource?.close()
+      } catch (parseError) {
+        console.error('解析错误事件失败:', parseError, '原始数据:', event.data)
+        handleError(new Error('服务器返回错误'), aiMessageIndex)
+      }
+    })
+
+    // 处理错误
+    eventSource.onerror = function () {
+      if (streamCompleted || !isGenerating.value) return
+      // 检查是否是正常的连接关闭
+      if (eventSource?.readyState === EventSource.CONNECTING) {
+        streamCompleted = true
+        isGenerating.value = false
+        eventSource?.close()
+
+        setTimeout(async () => {
+          await fetchAppData()
+          showPreview()
+        }, 1000)
+      } else {
+        handleError(new Error('SSE连接错误'), aiMessageIndex)
       }
     }
-
-    // 设置超时（60秒后自动关闭）
-    setTimeout(() => {
-      if (!streamEnded && eventSource) {
-        finishStream()
-        message.warning('生成超时，已保存当前内容')
-      }
-    }, 60000)
-  } catch (error: any) {
-    streaming.value = false
-    message.error('发送消息失败: ' + (error.message || '网络错误'))
+  } catch (error) {
+    console.error('创建 EventSource 失败：', error)
+    handleError(error, aiMessageIndex)
   }
 }
+
+// 错误处理函数
+const handleError = (error: unknown, aiMessageIndex: number) => {
+  console.error('生成代码失败：', error)
+  messages.value[aiMessageIndex].content = '抱歉，生成过程中出现了错误，请重试。'
+  messages.value[aiMessageIndex].loading = false
+  message.error('生成失败，请重试')
+  isGenerating.value = false
+}
+
 
 // 显示预览
 const showPreview = () => {
@@ -310,9 +395,9 @@ const scrollToBottom = async () => {
 
 // 清理
 onUnmounted(() => {
-  if (eventSource) {
-    eventSource.close()
-    eventSource = null
+  if (abortController) {
+    abortController.abort()
+    abortController = null
   }
 })
 
