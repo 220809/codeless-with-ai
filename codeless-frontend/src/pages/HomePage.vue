@@ -184,6 +184,8 @@ import {
   FileImageOutlined,
 } from '@ant-design/icons-vue'
 import { addApp, pageListMyApps, pageListFeaturedApps } from '@/api/app.ts'
+import { useRouter } from 'vue-router'
+import { useLoginUserStore } from '@/stores/loginUser.ts'
 import dayjs from 'dayjs'
 
 // 提示词输入
@@ -219,10 +221,17 @@ const handleSend = async () => {
       initialPrompt: promptInput.value.trim(),
     })
     if ((res.data.code === 200 || res.data.code === 0) && res.data.data) {
-      message.success(`应用创建成功！应用ID: ${res.data.data}`)
+      const appId = res.data.data
+      message.success(`应用创建成功！应用ID: ${appId}`)
       promptInput.value = ''
       // 刷新我的应用列表
       await fetchMyApps()
+      // 跳转到应用编辑页面
+      if (loginUserStore.loginUser.userRole === 1) {
+        router.push(`/admin/app/edit?id=${appId}`)
+      } else {
+        router.push(`/app/edit?id=${appId}`)
+      }
     } else {
       message.error('创建失败: ' + (res.data.message || '未知错误'))
     }
@@ -303,10 +312,20 @@ const handleFeaturedAppsSearch = () => {
   fetchFeaturedApps()
 }
 
+const router = useRouter()
+const loginUserStore = useLoginUserStore()
+
 // 应用点击
 const handleAppClick = (app: API.AppVo) => {
-  // TODO: 跳转到应用详情页
-  console.log('点击应用:', app)
+  if (!app.id) return
+  // 根据用户角色跳转到不同的编辑页面
+  if (loginUserStore.loginUser.userRole === 1) {
+    // 管理员跳转到管理员编辑页面
+    router.push(`/admin/app/edit?id=${app.id}`)
+  } else {
+    // 普通用户跳转到用户编辑页面
+    router.push(`/app/edit?id=${app.id}`)
+  }
 }
 
 // 格式化时间

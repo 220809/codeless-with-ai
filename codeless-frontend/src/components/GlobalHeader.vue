@@ -61,6 +61,10 @@ const allMenuItems = [
     label: '用户管理',
   },
   {
+    key: '/admin/app',
+    label: '应用管理',
+  },
+  {
     key: '/github',
     label: 'GitHub',
   },
