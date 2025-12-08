@@ -30,7 +30,7 @@ declare namespace API {
   }
 
   type appPreviewParams = {
-    appId: number
+    dirName: string
   }
 
   type AppSearchRequest = {

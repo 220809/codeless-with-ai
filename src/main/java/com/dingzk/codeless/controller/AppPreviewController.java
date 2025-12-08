@@ -1,17 +1,10 @@
 package com.dingzk.codeless.controller;
 
 import com.dingzk.codeless.constant.AppConstant;
-import com.dingzk.codeless.exception.ErrorCode;
-import com.dingzk.codeless.exception.ThrowUtils;
-import com.dingzk.codeless.model.entity.App;
-import com.dingzk.codeless.model.entity.User;
-import com.dingzk.codeless.service.AppService;
-import com.dingzk.codeless.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -39,26 +32,17 @@ public class AppPreviewController {
     // 应用生成根目录（用于浏览）
     private static final String PREVIEW_ROOT_DIR = AppConstant.CODE_FILE_SAVE_BASE_PATH;
 
-    @Autowired
-    private AppService appService;
-
-    @Autowired
-    private UserService userService;
-
     /**
      * 提供静态资源访问，支持目录重定向
-     * 访问格式：http://localhost:8888/api/app/preview/{appId}[/{fileName}]
+     * 访问格式：http://localhost:8888/api/app/preview/{dirName}[/{fileName}]
      */
-    @GetMapping("/{appId}/**")
+    @GetMapping("/{dirName}/**")
     @Operation(summary = "应用预览")
-    public ResponseEntity<Resource> appPreview(@PathVariable("appId") Long appId, HttpServletRequest request) {
-        // 校验 app 权限
-        App app = checkAppPermission(appId, userService.getLoginUser(request));
-
+    public ResponseEntity<Resource> appPreview(@PathVariable("dirName") String dirName, HttpServletRequest request) {
         try {
             // 获取资源路径
             String resourcePath = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
-            resourcePath = resourcePath.substring(("/app/preview/" + appId).length());
+            resourcePath = resourcePath.substring(("/app/preview/" + dirName).length());
             // 如果是目录访问（不带斜杠），重定向到带斜杠的URL
             if (resourcePath.isEmpty()) {
                 HttpHeaders headers = new HttpHeaders();
@@ -70,8 +54,7 @@ public class AppPreviewController {
                 resourcePath = "/index.html";
             }
             // 构建文件路径
-            String filePath = StringUtils.join(PREVIEW_ROOT_DIR, File.separator,
-                    StringUtils.join(app.getGenFileType(), "_", app.getId()), resourcePath);
+            String filePath = StringUtils.join(PREVIEW_ROOT_DIR, File.separator, dirName, resourcePath);
             File file = new File(filePath);
             // 检查文件是否存在
             if (!file.exists()) {
@@ -99,24 +82,5 @@ public class AppPreviewController {
         if (filePath.endsWith(".png")) return "image/png";
         if (filePath.endsWith(".jpg")) return "image/jpeg";
         return "application/octet-stream";
-    }
-
-    /**
-     * 校验应用权限
-     * @param appId 应用ID
-     * @param loginUser 当前登录用户
-     * @return 应用信息
-     */
-    private App checkAppPermission(Long appId, User loginUser) {
-        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_FOUND_ERROR, "用户不存在");
-        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.BAD_PARAM_ERROR, "应用ID不合法");
-
-        // 1. 校验应用是否存在
-        App oldApp = appService.getById(appId);
-        ThrowUtils.throwIf(oldApp == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
-
-        // 2. 校验权限（只能更新自己的应用）
-        ThrowUtils.throwIf(!loginUser.getId().equals(oldApp.getUserId()), ErrorCode.NO_AUTH_ERROR);
-        return oldApp;
     }
 }

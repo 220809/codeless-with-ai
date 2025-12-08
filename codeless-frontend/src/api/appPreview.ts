@@ -8,7 +8,7 @@ export async function appPreview(
   params: API.appPreviewParams,
   options?: { [key: string]: any }
 ) {
-  const { appId: param0, ...queryParams } = params
+  const { dirName: param0, ...queryParams } = params
   return request<string>(`/app/preview/${param0}/**`, {
     method: 'GET',
     params: { ...queryParams },
