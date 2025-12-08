@@ -76,6 +76,44 @@
         />
       </div>
     </div>
+
+    <!-- 部署模态框 -->
+    <a-modal
+      v-model:open="deployModalVisible"
+      title="应用部署成功"
+      :footer="null"
+      width="600px"
+    >
+      <div class="deploy-modal-content">
+        <div class="deploy-url-section">
+          <div class="deploy-url-label">部署地址：</div>
+          <div class="deploy-url-container">
+            <a-input
+              :value="deployUrl"
+              readonly
+              class="deploy-url-input"
+            />
+            <a-button
+              type="primary"
+              @click="handleCopyUrl"
+              class="copy-btn"
+            >
+              复制
+            </a-button>
+          </div>
+        </div>
+        <div class="deploy-actions">
+          <a-button
+            type="primary"
+            size="large"
+            block
+            @click="handleVisitUrl"
+          >
+            前往访问
+          </a-button>
+        </div>
+      </div>
+    </a-modal>
   </div>
 </template>
 
@@ -338,6 +376,9 @@ const showPreview = () => {
 
 // 部署应用
 const deploying = ref(false)
+const deployModalVisible = ref(false)
+const deployUrl = ref('')
+
 const handleDeploy = async () => {
   if (!appData.value.id) {
     message.error('应用ID不存在')
@@ -350,10 +391,8 @@ const handleDeploy = async () => {
       appId: appData.value.id as any,
     })
     if ((res.data.code === 200 || res.data.code === 0) && res.data.data) {
-      const deployUrl = res.data.data
-      message.success(`部署成功！访问地址: ${deployUrl}`)
-      // 可以打开新窗口显示部署的网站
-      window.open(deployUrl, '_blank')
+      deployUrl.value = res.data.data
+      deployModalVisible.value = true
     } else {
       message.error('部署失败: ' + (res.data.message || '未知错误'))
     }
@@ -361,6 +400,36 @@ const handleDeploy = async () => {
     message.error('部署失败: ' + (error.message || '网络错误'))
   } finally {
     deploying.value = false
+  }
+}
+
+// 复制URL
+const handleCopyUrl = async () => {
+  try {
+    await navigator.clipboard.writeText(deployUrl.value)
+    message.success('复制成功')
+  } catch (error) {
+    // 降级方案：使用传统方法
+    const textArea = document.createElement('textarea')
+    textArea.value = deployUrl.value
+    textArea.style.position = 'fixed'
+    textArea.style.opacity = '0'
+    document.body.appendChild(textArea)
+    textArea.select()
+    try {
+      document.execCommand('copy')
+      message.success('复制成功')
+    } catch (err) {
+      message.error('复制失败')
+    }
+    document.body.removeChild(textArea)
+  }
+}
+
+// 前往访问
+const handleVisitUrl = () => {
+  if (deployUrl.value) {
+    window.open(deployUrl.value, '_blank')
   }
 }
 
@@ -582,6 +651,39 @@ onMounted(() => {
   width: 100%;
   height: 100%;
   border: none;
+}
+
+/* 部署模态框样式 */
+.deploy-modal-content {
+  padding: 8px 0;
+}
+
+.deploy-url-section {
+  margin-bottom: 24px;
+}
+
+.deploy-url-label {
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #333;
+}
+
+.deploy-url-container {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.deploy-url-input {
+  flex: 1;
+}
+
+.copy-btn {
+  flex-shrink: 0;
+}
+
+.deploy-actions {
+  margin-top: 24px;
 }
 
 /* 响应式设计 */
