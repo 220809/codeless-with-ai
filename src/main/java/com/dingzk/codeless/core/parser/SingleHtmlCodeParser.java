@@ -22,7 +22,7 @@ public class SingleHtmlCodeParser implements CodeParser<SingleHtmlCodeResult> {
         SingleHtmlCodeResult result = new SingleHtmlCodeResult();
         // 提取html代码
         String htmlCode = extractCodeByPattern(content, HTML_CODE_PATTERN);
-        if (StringUtils.isNotBlank(htmlCode.trim())) {
+        if (StringUtils.isNotBlank(htmlCode)) {
             result.setHtmlCode(htmlCode.trim());
         } else {
             // 如果没有找到代码块，将整个内容作为html

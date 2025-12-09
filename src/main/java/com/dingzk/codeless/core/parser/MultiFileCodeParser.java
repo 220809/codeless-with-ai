@@ -29,18 +29,23 @@ public class MultiFileCodeParser implements CodeParser<MultiFileCodeResult> {
         MultiFileCodeResult result = new MultiFileCodeResult();
         // 提取 HTML 代码
         String htmlCode = extractCodeByPattern(content, HTML_CODE_PATTERN);
-        if (StringUtils.isNotBlank(htmlCode.trim())) {
+        if (StringUtils.isNotBlank(htmlCode)) {
             result.setHtmlCode(htmlCode.trim());
         }
         // 提取 CSS 代码
         String cssCode = extractCodeByPattern(content, CSS_CODE_PATTERN);
-        if (StringUtils.isNotBlank(cssCode.trim())) {
+        if (StringUtils.isNotBlank(cssCode)) {
             result.setCssCode(cssCode.trim());
         }
         // 提取 JS 代码
         String jsCode = extractCodeByPattern(content, JS_CODE_PATTERN);
-        if (StringUtils.isNotBlank(jsCode.trim())) {
+        if (StringUtils.isNotBlank(jsCode)) {
             result.setJsCode(jsCode.trim());
+        }
+
+        // 当 ai 生成结果不是按照指定格式导致解析异常时，直接将 ai 返回内容作为 html 代码
+        if (StringUtils.isAllBlank(result.getHtmlCode(), result.getCssCode(), result.getJsCode())) {
+            result.setHtmlCode(content);
         }
         return result;
     }
