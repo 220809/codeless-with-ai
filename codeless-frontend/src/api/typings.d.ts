@@ -102,6 +102,12 @@ declare namespace API {
     message?: string
   }
 
+  type BaseResponsePageChatHistory = {
+    code?: number
+    data?: PageChatHistory
+    message?: string
+  }
+
   type BaseResponseString = {
     code?: number
     data?: string
@@ -112,6 +118,29 @@ declare namespace API {
     code?: number
     data?: Record<string, any>
     message?: string
+  }
+
+  type ChatHistory = {
+    id?: number
+    messageContent?: string
+    messageType?: string
+    appId?: number
+    userId?: number
+    createTime?: string
+    updateTime?: string
+    deleted?: number
+  }
+
+  type ChatHistorySearchRequest = {
+    pageNum?: number
+    pageSize?: number
+    sortField?: string
+    sortOrder?: string
+    id?: number
+    appId?: number
+    lastRecentCreateTime?: string
+    messageType?: string
+    userId?: number
   }
 
   type DeleteRequest = {
@@ -155,6 +184,21 @@ declare namespace API {
     totalPage?: number
     totalRow?: number
     optimizeCountQuery?: boolean
+  }
+
+  type PageChatHistory = {
+    records?: ChatHistory[]
+    pageNumber?: number
+    pageSize?: number
+    totalPage?: number
+    totalRow?: number
+    optimizeCountQuery?: boolean
+  }
+
+  type pageListMyChatHistoryParams = {
+    appId: number
+    pageSize?: number
+    lastRecentCreateTime?: string
   }
 
   type ServerSentEventString = true
