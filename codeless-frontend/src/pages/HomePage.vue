@@ -17,7 +17,7 @@
       <div class="input-container">
         <a-textarea
           v-model:value="promptInput"
-          :placeholder="'使用 NoCode 创建一个高效的小工具,帮我计算......'"
+          :placeholder="'使用 CodeLess 创建一个高效的小工具,帮我计算......'"
           :auto-size="{ minRows: 4, maxRows: 6 }"
           class="prompt-input"
           @keydown.enter.ctrl="handleSend"
@@ -108,9 +108,7 @@
               v-model:current="myAppsPageNum"
               v-model:page-size="myAppsPageSize"
               :total="myAppsTotal"
-              :page-size-options="['10', '20']"
-              show-size-changer
-              show-total
+              :show-total="(total: number) => `共${total}条结果`"
               @change="handleMyAppsPageChange"
               @show-size-change="handleMyAppsPageChange"
             />
@@ -190,9 +188,7 @@
               v-model:current="featuredAppsPageNum"
               v-model:page-size="featuredAppsPageSize"
               :total="featuredAppsTotal"
-              :page-size-options="['10', '20']"
-              show-size-changer
-              show-total
+              :show-total="(total: number) => `共${total}条结果`"
               @change="handleFeaturedAppsPageChange"
               @show-size-change="handleFeaturedAppsPageChange"
             />
@@ -224,7 +220,7 @@ const creating = ref(false)
 const myAppsData = ref<API.AppVo[]>([])
 const myAppsLoading = ref(false)
 const myAppsPageNum = ref(1)
-const myAppsPageSize = ref(20)
+const myAppsPageSize = ref(8)
 const myAppsTotal = ref(0)
 const myAppsSearchName = ref('')
 
@@ -232,7 +228,7 @@ const myAppsSearchName = ref('')
 const featuredAppsData = ref<API.AppVo[]>([])
 const featuredAppsLoading = ref(false)
 const featuredAppsPageNum = ref(1)
-const featuredAppsPageSize = ref(20)
+const featuredAppsPageSize = ref(8)
 const featuredAppsTotal = ref(0)
 const featuredAppsSearchName = ref('')
 
@@ -250,7 +246,7 @@ const handleSend = async () => {
     })
     if ((res.data.code === 200 || res.data.code === 0) && res.data.data) {
       const appId = res.data.data
-      message.success(`应用创建成功！应用ID: ${appId}`)
+      message.success('应用创建成功！')
       promptInput.value = ''
       // 刷新我的应用列表
       await fetchMyApps()
@@ -273,6 +269,8 @@ const fetchMyApps = async () => {
     const res = await pageListMyApps({
       pageNum: myAppsPageNum.value,
       pageSize: myAppsPageSize.value,
+      sortField: 'create_time',
+      sortOrder: 'desc',
       name: myAppsSearchName.value || undefined,
     })
     if ((res.data.code === 200 || res.data.code === 0) && res.data.data) {
@@ -295,6 +293,8 @@ const fetchFeaturedApps = async () => {
     const res = await pageListFeaturedApps({
       pageNum: featuredAppsPageNum.value,
       pageSize: featuredAppsPageSize.value,
+      sortField: 'create_time',
+      sortOrder: 'desc',
       name: featuredAppsSearchName.value || undefined,
     })
     if ((res.data.code === 200 || res.data.code === 0) && res.data.data) {
@@ -510,7 +510,7 @@ onMounted(() => {
 /* 应用列表区域 */
 .apps-section {
   margin-bottom: 60px;
-  width: 1600px;
+  max-width: 1600px;
 }
 
 .section-header {
@@ -543,7 +543,7 @@ onMounted(() => {
 .apps-grid {
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 24px;
   margin-bottom: 24px;
 }
@@ -683,6 +683,18 @@ onMounted(() => {
 }
 
 /* 响应式设计 */
+@media (max-width: 1200px) {
+  .apps-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .apps-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
   .home-page {
     padding: 20px 16px;
