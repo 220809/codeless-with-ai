@@ -31,12 +31,23 @@
             :key="index"
             :class="['message-item', msg.type === 'user' ? 'user-message' : 'ai-message']"
           >
+            <a-avatar
+              v-if="msg.type === 'user'"
+              :src="loginUserStore.loginUser.avatarUrl"
+              :size="32"
+              class="message-avatar"
+            >
+              {{ loginUserStore.loginUser.username?.[0] || 'U' }}
+            </a-avatar>
+            <div v-if="msg.type === 'ai'" class="ai-avatar">
+              <img src="@/assets/AI_icon.svg" alt="AI" class="ai-icon" />
+            </div>
             <div class="message-content">
               <div class="message-text" v-html="formatMessage(msg.content)"></div>
             </div>
           </div>
           <div class="message-item ai-message" v-if="streaming">
-            <div class="message-content">
+            <div class="message-content" style="height: 38px; margin-left: 44px; line-height: 38px">
               {{  'AI 正在卖命生成中'  }}
               <a-spin :spinning="streaming" />
             </div>
@@ -139,10 +150,13 @@
 import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { getAppById, genCodeFromChat, deployApp } from '@/api/app.ts'
+import { getAppById, deployApp } from '@/api/app.ts'
 import request from '@/request.ts'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import AppDetailModal from '@/components/AppDetailModal.vue'
+import MarkdownIt from 'markdown-it'
+import hljs from 'highlight.js'
+import 'highlight.js/styles/github.css'
 
 const route = useRoute()
 const router = useRouter()
@@ -168,6 +182,23 @@ const previewUrl = ref('')
 const canDeploy = computed(() => previewReady.value && appData.value.genFileType)
 
 const loginUserStore = useLoginUserStore()
+
+// 初始化 Markdown 解析器
+const md = new MarkdownIt({
+  html: true,
+  linkify: true,
+  typographer: true,
+  highlight: function (str: any, lang: any) {
+    if (lang && hljs.getLanguage(lang)) {
+      try {
+        return '<pre class="hljs"><code>' +
+               hljs.highlight(str, { language: lang, ignoreIllegals: true }).value +
+               '</code></pre>';
+      } catch (__) {}
+    }
+    return '<pre class="hljs"><code>' + md.utils.escapeHtml(str) + '</code></pre>';
+  }
+})
 
 // 权限检查：是否是自己的作品
 const canEdit = computed(() => {
@@ -480,23 +511,10 @@ const handleAppDeleted = () => {
   router.push('/')
 }
 
-// 格式化消息（支持代码块）
+// 格式化消息（支持 Markdown 和代码高亮）
 const formatMessage = (text: string) => {
   if (!text) return ''
-  // 转义HTML
-  let formatted = text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-
-  // 简单的代码块处理
-  formatted = formatted.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
-  formatted = formatted.replace(/`([^`]+)`/g, '<code>$1</code>')
-
-  // 换行处理
-  formatted = formatted.replace(/\n/g, '<br>')
-
-  return formatted
+  return md.render(text)
 }
 
 // 滚动到底部
@@ -584,20 +602,39 @@ onMounted(() => {
 
 .message-item {
   display: flex;
+  align-items: flex-start;
+  gap: 12px;
   max-width: 80%;
   min-width: 0;
-}
-
-.user-message {
-  align-self: flex-end;
 }
 
 .ai-message {
   align-self: flex-start;
 }
 
+.message-avatar {
+  flex-shrink: 0;
+}
+
+.ai-avatar {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0f0f0;
+  border-radius: 50%;
+  padding: 4px;
+}
+
+.ai-icon {
+  width: 24px;
+  height: 24px;
+}
+
 .message-content {
-  padding: 12px 16px;
+  padding: 0 8px;
   border-radius: 12px;
   word-wrap: break-word;
   word-break: break-word;
@@ -625,26 +662,127 @@ onMounted(() => {
   min-width: 0;
 }
 
-.message-text :deep(pre) {
-  background: rgba(0, 0, 0, 0.1);
-  padding: 8px;
-  border-radius: 4px;
-  overflow-x: auto;
+/* Markdown 样式 */
+.message-text :deep(h1),
+.message-text :deep(h2),
+.message-text :deep(h3),
+.message-text :deep(h4),
+.message-text :deep(h5),
+.message-text :deep(h6) {
+  margin: 16px 0 8px 0;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.message-text :deep(h1) { font-size: 1.5em; }
+.message-text :deep(h2) { font-size: 1.3em; }
+.message-text :deep(h3) { font-size: 1.1em; }
+
+.message-text :deep(p) {
   margin: 8px 0;
 }
 
-.message-text :deep(code) {
-  background: rgba(0, 0, 0, 0.1);
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-family: 'Courier New', monospace;
-  font-size: 0.9em;
+.message-text :deep(ul),
+.message-text :deep(ol) {
+  margin: 8px 0;
+  padding-left: 24px;
 }
 
-.typing-indicator {
-  display: inline-block;
-  animation: blink 1s infinite;
-  color: #1890ff;
+.message-text :deep(li) {
+  margin: 4px 0;
+}
+
+.message-text :deep(blockquote) {
+  margin: 8px 0;
+  padding: 8px 16px;
+  border-left: 4px solid #d1d5db;
+  background: rgba(0, 0, 0, 0.05);
+  color: #6b7280;
+}
+
+.message-text :deep(a) {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.message-text :deep(a:hover) {
+  text-decoration: underline;
+}
+
+.message-text :deep(table) {
+  border-collapse: collapse;
+  margin: 12px 0;
+  width: 100%;
+}
+
+.message-text :deep(th),
+.message-text :deep(td) {
+  border: 1px solid #e5e7eb;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.message-text :deep(th) {
+  background: #f9fafb;
+  font-weight: 600;
+}
+
+.message-text :deep(hr) {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 16px 0;
+}
+
+/* 代码块样式 */
+.message-text :deep(pre.hljs) {
+  background: #ffffff;
+  padding: 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 12px 0;
+  font-size: 14px;
+  line-height: 1.5;
+  border: 1px solid #d1d5db;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.message-text :deep(pre.hljs code) {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-family: 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+  color: #1f2937;
+}
+
+.ai-message .message-text :deep(pre.hljs) {
+  background: #ffffff;
+  border-color: #d1d5db;
+}
+
+.ai-message .message-text :deep(pre.hljs code) {
+  color: #1f2937;
+}
+
+.message-text :deep(code:not(pre code)) {
+  background: #f3f4f6;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 0.9em;
+  color: #dc2626;
+  border: 1px solid #e5e7eb;
+}
+
+.ai-message .message-text :deep(code:not(pre code)) {
+  background: #f3f4f6;
+  color: #dc2626;
+  border: 1px solid #e5e7eb;
+}
+
+.user-message .message-text :deep(code:not(pre code)) {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffd700;
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 @keyframes blink {
