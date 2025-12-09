@@ -105,6 +105,10 @@ const handleCancel = () => {
   color: #595959;
 }
 
+:deep(.ant-form-item) {
+  margin-bottom: 24px;
+}
+
 :deep(.ant-input),
 :deep(.ant-select-selector),
 :deep(.ant-input-number-input) {
@@ -116,5 +120,10 @@ const handleCancel = () => {
   height: 36px;
   padding: 0 20px;
   font-weight: 500;
+}
+
+:deep(.ant-image) {
+  border-radius: 4px;
+  border: 1px solid #f0f0f0;
 }
 </style>
