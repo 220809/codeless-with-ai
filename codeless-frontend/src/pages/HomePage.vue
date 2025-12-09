@@ -15,34 +15,37 @@
     <!-- 提示词输入框区域 -->
     <div class="input-section">
       <div class="input-container">
-        <a-textarea
-          v-model:value="promptInput"
-          :placeholder="'使用 CodeLess 创建一个高效的小工具,帮我计算......'"
-          :auto-size="{ minRows: 4, maxRows: 6 }"
-          class="prompt-input"
-          @keydown.enter.ctrl="handleSend"
-        />
-        <div class="input-actions">
-              <div class="input-left-actions">
-                <a-button type="text" class="action-btn">
-                  <template #icon>
-                    <UploadOutlined />
-                  </template>
-                  上传
-                </a-button>
-              </div>
-              <a-button
-                type="primary"
-                shape="circle"
-                :loading="creating"
-                class="send-btn"
-                @click="handleSend"
-              >
-                <template #icon>
-                  <ArrowUpOutlined />
-                </template>
-              </a-button>
-            </div>
+        <div class="input-wrapper">
+          <a-textarea
+            v-model:value="promptInput"
+            :placeholder="'使用 CodeLess 创建一个高效的小工具,帮我计算......'"
+            :auto-size="{ minRows: 4, maxRows: 6 }"
+            class="prompt-input"
+            @keydown.enter.ctrl="handleSend"
+          />
+          <a-button
+            type="primary"
+            shape="circle"
+            :loading="creating"
+            class="send-btn-inline"
+            @click="handleSend"
+          >
+            <template #icon>
+              <ArrowUpOutlined />
+            </template>
+          </a-button>
+        </div>
+        <!-- 预置提示词按钮 -->
+        <div class="preset-buttons">
+          <a-button
+            v-for="preset in presetPrompts"
+            :key="preset.label"
+            class="preset-btn"
+            @click="handlePresetClick(preset.prompt)"
+          >
+            {{ preset.label }}
+          </a-button>
+        </div>
       </div>
     </div>
 
@@ -117,14 +120,40 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
-import {
-  UploadOutlined,
-  ArrowUpOutlined,
-} from '@ant-design/icons-vue'
+import { ArrowUpOutlined } from '@ant-design/icons-vue'
 import { addApp, pageListMyApps, pageListFeaturedApps } from '@/api/app.ts'
 import { useRouter } from 'vue-router'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import AppCard from '@/components/AppCard.vue'
+
+// 预置提示词
+const presetPrompts = [
+  {
+    label: '个人博客网站',
+    prompt: '使用 CodeLess 创建一个个人博客网站，包含文章列表、文章详情、分类标签、搜索功能，采用简洁现代的设计风格，支持响应式布局。'
+  },
+  {
+    label: '计算器小程序',
+    prompt: '使用 CodeLess 创建一个功能完整的计算器小程序，支持基本四则运算、科学计算、历史记录查看，界面简洁美观，操作流畅。'
+  },
+  {
+    label: '任务清单',
+    prompt: '使用 CodeLess 创建一个任务清单应用，支持添加、编辑、删除任务，任务状态标记（待办/进行中/已完成），按优先级排序，数据本地存储。'
+  },
+  {
+    label: '登录页面',
+    prompt: '使用 CodeLess 创建一个美观的登录页面，包含用户名和密码输入框、记住我选项、忘记密码链接，采用现代化设计风格，支持表单验证。'
+  },
+  {
+    label: '注册页面',
+    prompt: '使用 CodeLess 创建一个用户注册页面，包含用户名、邮箱、密码、确认密码输入框，实时表单验证，用户协议勾选，采用友好的交互设计。'
+  },
+]
+
+// 处理预置提示词点击
+const handlePresetClick = (prompt: string) => {
+  promptInput.value = prompt
+}
 
 // 提示词输入
 const promptInput = ref('')
@@ -326,62 +355,84 @@ onMounted(() => {
   position: relative;
 }
 
-.prompt-input {
-  width: 100%;
+.input-wrapper {
+  position: relative;
+  background: #fff;
   border-radius: 16px;
-  padding: 20px;
-  font-size: 16px;
   border: 1px solid #e2e8f0;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
+  padding: 20px;
+  padding-right: 70px;
 }
 
-.prompt-input:focus {
+.input-wrapper:focus-within {
   border-color: #3b82f6;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
 }
 
-.input-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 12px;
-  padding: 0 8px;
+.prompt-input {
+  width: 100%;
+  border: none;
+  padding: 0;
+  font-size: 16px;
+  resize: none;
+  box-shadow: none;
 }
 
-.input-left-actions {
-  display: flex;
-  gap: 8px;
+.prompt-input:focus {
+  border: none;
+  box-shadow: none;
+  outline: none;
 }
 
-.action-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: #64748b;
-  border-radius: 8px;
-  padding: 4px 12px;
-  font-size: 14px;
-}
-
-.action-btn:hover {
-  background-color: #f1f5f9;
-  color: #3b82f6;
-}
-
-.send-btn {
-  width: 48px;
-  height: 48px;
+.send-btn-inline {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
   background: #3b82f6;
   border: none;
-  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
   transition: all 0.3s ease;
+  z-index: 10;
 }
 
-.send-btn:hover {
+.send-btn-inline:hover {
   background: #2563eb;
   transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);
+}
+
+.preset-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+  justify-content: center;
+}
+
+.preset-btn {
+  height: 40px;
+  padding: 0 24px;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  white-space: nowrap;
+}
+
+.preset-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #1e293b;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 /* 应用列表区域 */
