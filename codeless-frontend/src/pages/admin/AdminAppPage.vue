@@ -90,7 +90,7 @@
           </a-space>
         </template>
         <template v-if="column.dataIndex === 'createTime'">
-          {{ dayjs(record.createTime).format('YYYY/MM/DD HH:mm:ss') }}
+          {{ formatDateTimeSlash(record.createTime) }}
         </template>
         <template v-if="column.dataIndex === 'options'">
           <a-space :size="4">
@@ -126,7 +126,7 @@
 import { message, type TableColumnsType } from 'ant-design-vue'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { adminDeleteApp, adminPageListApps, adminUpdateApp } from '@/api/app.ts'
-import dayjs from 'dayjs'
+import { formatDateTimeSlash } from '@/utils/date.ts'
 import { SearchOutlined } from '@ant-design/icons-vue'
 import AppEditPage from '@/pages/admin/AppEditPage.vue'
 

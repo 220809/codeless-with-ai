@@ -47,6 +47,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { type MenuProps, message } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import { userLogout } from '@/api/user.ts'
+import { isAdmin } from '@/utils/helpers.ts'
 
 const loginUserStore = useLoginUserStore()
 
@@ -75,7 +76,7 @@ const filterMenuItems = () => {
     const loginUserStore = useLoginUserStore();
     const loginUser = loginUserStore.loginUser;
     if (item.key.startsWith('/admin')) {
-      return loginUser?.userRole === 1;
+      return isAdmin(loginUser?.userRole)
     }
     return true;
   });

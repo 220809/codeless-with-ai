@@ -47,9 +47,7 @@
           </a-space>
         </a-form-item>
         <a-form-item name="createTime" label="创建时间" v-if="isAdmin">
-          <span>{{
-            formState.createTime ? dayjs(formState.createTime).format('YYYY-MM-DD HH:mm:ss') : '-'
-          }}</span>
+          <span>{{ formatDateTime(formState.createTime) }}</span>
         </a-form-item>
         <a-form-item :wrapper-col="{ ...layout.wrapperCol, offset: 4 }">
           <a-space>
@@ -107,9 +105,7 @@
           </a-space>
         </a-form-item>
         <a-form-item name="createTime" label="创建时间" v-if="isAdmin">
-          <span>{{
-            formState.createTime ? dayjs(formState.createTime).format('YYYY-MM-DD HH:mm:ss') : '-'
-          }}</span>
+          <span>{{ formatDateTime(formState.createTime) }}</span>
         </a-form-item>
         <a-form-item :wrapper-col="{ ...layout.wrapperCol, offset: 4 }">
           <a-space>
@@ -138,7 +134,8 @@ import {
 import { message, Modal } from 'ant-design-vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
-import dayjs from 'dayjs'
+import { formatDateTime } from '@/utils/date.ts'
+import { isAdmin as checkIsAdmin } from '@/utils/helpers.ts'
 
 const layout = {
   labelCol: { span: 4 },
@@ -162,7 +159,7 @@ const submitting = ref(false)
 const deleting = ref(false)
 const appData = ref<API.AppVo>({})
 
-const isAdmin = computed(() => loginUserStore.loginUser.userRole === 1)
+const isAdmin = computed(() => checkIsAdmin(loginUserStore.loginUser.userRole))
 const canEdit = computed(() => {
   if (isAdmin.value) return true
   // 普通用户只能编辑自己的应用

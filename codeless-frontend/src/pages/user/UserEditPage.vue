@@ -7,7 +7,7 @@
     <a-form-item name="userAccount" label="账号" :rules="[{validator: accountValidator}]">
       <a-input
         v-model:value="formState.userAccount"
-        v-if="loginUserStore.loginUser.userRole === 1"
+        v-if="isAdmin(loginUserStore.loginUser.userRole)"
       />
       <span v-else>{{ editUser.userAccount }}</span>
     </a-form-item>
@@ -33,12 +33,12 @@
         v-model:value="formState.userRole"
         allow-clear
         :first-active-value="formState?.userRole"
-        v-if="loginUserStore.loginUser.userRole === 1"
+        v-if="isAdmin(loginUserStore.loginUser.userRole)"
       >
         <a-select-option :key="0">用户</a-select-option>
         <a-select-option :key="1">管理员</a-select-option>
       </a-select>
-      <span v-else>{{ formState?.userRole === 0 ? '用户' : '管理员' }}</span>
+      <span v-else>{{ USER_ROLE_TEXT[formState?.userRole ?? 0] || '用户' }}</span>
     </a-form-item>
     <a-form-item :wrapper-col="{ ...layout.wrapperCol, offset: 4 }">
       <a-space>
@@ -55,6 +55,8 @@ import { updateUser } from '@/api/user.ts'
 import { message } from 'ant-design-vue'
 import { accountValidator, usernameValidator } from '@/validator.ts'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
+import { isAdmin } from '@/utils/helpers.ts'
+import { USER_ROLE_TEXT } from '@/utils/constants.ts'
 
 const layout = {
   labelCol: { span: 4 },
@@ -74,7 +76,6 @@ const formState = reactive<API.LoginUserVo>({
 })
 
 const handleSubmit = async (values: any) => {
-  console.log(1)
   const res = await updateUser({
     id: formState.id,
     ...values,

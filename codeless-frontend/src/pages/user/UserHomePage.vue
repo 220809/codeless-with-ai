@@ -48,7 +48,7 @@
                    </div>
                    <div class="info-item">
                      <span class="info-label">角色：</span>
-                     <span class="info-value">{{ loginUserStore.loginUser.userRole === 1 ? '管理员' : '用户' }}</span>
+                     <span class="info-value">{{ USER_ROLE_TEXT[loginUserStore.loginUser.userRole ?? 0] || '用户' }}</span>
                    </div>
                  </div>
                  <div class="info-actions">
@@ -81,6 +81,7 @@ import {
 } from '@ant-design/icons-vue';
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import { useRoute, useRouter } from 'vue-router'
+import { USER_ROLE_TEXT, GENDER_TEXT } from '@/utils/constants.ts'
 import UserEditPage from '@/pages/user/UserEditPage.vue'
 
 const route =  useRoute();
@@ -91,10 +92,7 @@ const selectedKeys = computed(() => ([route.path]));
 const loginUserStore = useLoginUserStore();
 
 const genderText = computed(() => {
-  const gender = loginUserStore.loginUser.gender;
-  if (gender === 1) return '男';
-  if (gender === 2) return '女';
-  return '未知';
+  return GENDER_TEXT[loginUserStore.loginUser.gender ?? 0] || '未知'
 });
 
 const handleEditClose = () => {

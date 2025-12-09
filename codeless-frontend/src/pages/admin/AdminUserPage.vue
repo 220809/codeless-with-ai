@@ -90,9 +90,9 @@
               {{ userRoleEnum[record.userRole] }}
             </a-space>
           </template>
-          <template v-if="column.dataIndex === 'createTime'">
-            {{ dayjs(record.createTime).format('YYYY/MM/DD HH:mm:ss') }}
-          </template>
+        <template v-if="column.dataIndex === 'createTime'">
+          {{ formatDateTimeSlash(record.createTime) }}
+        </template>
           <template v-if="column.dataIndex === 'options'">
             <a-space :size="4">
               <a-button type="primary" ghost size="small" @click="handleEdit(record)"
@@ -110,7 +110,6 @@
       destroy-on-close
       :footer="null"
       width="960px"
-      centered
     >
       <user-edit-page :edit-user="editUser" @close-modal="handleCloseModal" />
     </a-modal>
@@ -121,7 +120,8 @@ import { message, type TableColumnsType } from 'ant-design-vue'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { deleteUser, pageListUser } from '@/api/user.ts'
 import { SmileTwoTone, UserOutlined, SearchOutlined } from '@ant-design/icons-vue'
-import dayjs from 'dayjs'
+import { formatDateTimeSlash } from '@/utils/date.ts'
+import { USER_ROLE_TEXT, GENDER_TEXT } from '@/utils/constants.ts'
 import UserEditPage from '@/pages/user/UserEditPage.vue'
 
 const formRef = ref()
@@ -180,9 +180,8 @@ const searchParams = reactive<API.UserSearchRequest>({ ...defaultSearchParams })
 
 const total = ref(0)
 
-const userGenderEnum = ['-','男','女'];
-
-const userRoleEnum = ['用户','管理员'];
+const userGenderEnum = GENDER_TEXT
+const userRoleEnum = USER_ROLE_TEXT
 
 const editModalOpen = ref(false)
 const editUser = ref<API.LoginUserVo>()
