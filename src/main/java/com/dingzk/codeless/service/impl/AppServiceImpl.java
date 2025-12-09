@@ -13,14 +13,17 @@ import com.dingzk.codeless.model.dto.app.AppSearchRequest;
 import com.dingzk.codeless.model.dto.app.AppUpdateRequest;
 import com.dingzk.codeless.model.entity.App;
 import com.dingzk.codeless.model.entity.User;
+import com.dingzk.codeless.model.enums.ChatMessageTypeEnum;
 import com.dingzk.codeless.model.enums.GenFileTypeEnum;
 import com.dingzk.codeless.model.vo.AppVo;
 import com.dingzk.codeless.model.vo.LoginUserVo;
 import com.dingzk.codeless.service.AppService;
+import com.dingzk.codeless.service.ChatHistoryService;
 import com.dingzk.codeless.service.UserService;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -44,6 +47,7 @@ import java.util.stream.Collectors;
  * @date 2025/12/7 14:45
  */
 @Service
+@Slf4j
 public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppService {
 
     @Resource
@@ -51,6 +55,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Resource
     private AiGenCodeFacade aiGenCodeFacade;
+
+    @Resource
+    private ChatHistoryService chatHistoryService;
 
     /**
      * 应用名称最大长度
@@ -126,7 +133,25 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         GenFileTypeEnum genFileType = GenFileTypeEnum.getByName(app.getGenFileType());
         ThrowUtils.throwIf(genFileType == null, ErrorCode.SYSTEM_ERROR, "存在非法的文件生成类型");
 
-        return aiGenCodeFacade.streamingGenerateAndSaveCodeFile(userMessage, genFileType, app.getId());
+        // 保存用户消息
+        chatHistoryService.addChatHistory(appId, userMessage, ChatMessageTypeEnum.USER.getType(), loginUser);
+
+        // ai 返回完整消息后保存ai消息
+        Flux<String> aiMessageFlux = aiGenCodeFacade.streamingGenerateAndSaveCodeFile(userMessage, genFileType, app.getId());
+        StringBuilder aiMessageBuilder = new StringBuilder();
+        return aiMessageFlux.map(chunk -> {
+            aiMessageBuilder.append(chunk);
+            return chunk;
+        }).doOnComplete(() -> {
+           String aiMessage = aiMessageBuilder.toString();
+           if (StringUtils.isNotBlank(aiMessage)) {
+               chatHistoryService.addChatHistory(appId, aiMessage, ChatMessageTypeEnum.AI.getType(), loginUser);
+           }
+        }).doOnError(error -> {
+            // 错误时保存异常消息
+            String errorMessage = StringUtils.join("生成代码失败: ", error.getMessage());
+            chatHistoryService.addChatHistory(appId, errorMessage, ChatMessageTypeEnum.AI.getType(), loginUser);
+        });
     }
 
     @Override
@@ -192,7 +217,15 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     public boolean deleteApp(Long id, User loginUser) {
         checkAppPermission(id, loginUser, true);
 
-        // 3. 删除应用
+        // 3. 级联删除聊天历史
+        try {
+            chatHistoryService.deleteChatHistoryByAppId(id);
+        } catch (Exception e) {
+            // 删除对话消息异常不要影响应用删除，这里做日志记录
+            log.error("删除应用关联的历史消息失败: {}", e.getMessage());
+        }
+
+        // 4. 删除应用
         boolean result = this.removeById(id);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "删除应用失败");
 
