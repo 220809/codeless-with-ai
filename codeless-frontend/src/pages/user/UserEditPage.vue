@@ -1,9 +1,10 @@
 <template>
-  <a-form :model="formState" v-bind="layout" name="nest-messages" @finish="handleSubmit">
+  <div class="user-edit-wrapper">
+    <a-form :model="formState" v-bind="layout" name="nest-messages" @finish="handleSubmit" class="user-edit-form">
     <a-form-item name="username" label="用户名" :rules="[{ validator: usernameValidator }]">
       <a-input v-model:value="formState.username" />
     </a-form-item>
-    <a-form-item name="userAccount" label="账号">
+    <a-form-item name="userAccount" label="账号" :rules="[{validator: accountValidator}]">
       <a-input
         v-model:value="formState.userAccount"
         v-if="loginUserStore.loginUser.userRole === 1"
@@ -39,17 +40,20 @@
       </a-select>
       <span v-else>{{ formState?.userRole === 0 ? '用户' : '管理员' }}</span>
     </a-form-item>
-    <a-form-item :wrapper-col="{ ...layout.wrapperCol, offset: 18 }">
-      <a-button type="primary" html-type="submit">提交信息</a-button>
+    <a-form-item :wrapper-col="{ ...layout.wrapperCol, offset: 4 }">
+      <a-space>
+        <a-button type="primary" html-type="submit">提交信息</a-button>
+        <a-button @click="handleCancel">取消</a-button>
+      </a-space>
     </a-form-item>
-  </a-form>
+    </a-form>
+  </div>
 </template>
 <script lang="ts" setup>
 import { reactive } from 'vue'
 import { updateUser } from '@/api/user.ts'
 import { message } from 'ant-design-vue'
-import { usernameValidator } from '@/validator.ts'
-import { useRouter } from 'vue-router'
+import { accountValidator, usernameValidator } from '@/validator.ts'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 
 const layout = {
@@ -58,9 +62,10 @@ const layout = {
 }
 
 const props = defineProps<{
-  editUser: API.LoginUserVo
-}>()
-const router = useRouter()
+  editUser?: API.LoginUserVo
+}>();
+
+const emits = defineEmits(['closeModal']);
 
 const loginUserStore = useLoginUserStore()
 
@@ -69,17 +74,47 @@ const formState = reactive<API.LoginUserVo>({
 })
 
 const handleSubmit = async (values: any) => {
+  console.log(1)
   const res = await updateUser({
     id: formState.id,
     ...values,
   })
   if (res.data.code === 200) {
     message.success('修改信息成功!')
-    if (window.location.pathname === '/user/edit') {
-      router.replace('/user/home')
-    }
+    emits('closeModal');
   } else {
     message.error('操作失败, ' + res.data.message)
   }
 }
+
+const handleCancel = () => {
+  emits('closeModal');
+}
 </script>
+<style scoped>
+.user-edit-wrapper {
+  padding: 8px 0;
+}
+
+.user-edit-form {
+  max-width: 100%;
+}
+
+:deep(.ant-form-item-label > label) {
+  font-weight: 500;
+  color: #595959;
+}
+
+:deep(.ant-input),
+:deep(.ant-select-selector),
+:deep(.ant-input-number-input) {
+  border-radius: 4px;
+}
+
+:deep(.ant-btn) {
+  border-radius: 4px;
+  height: 36px;
+  padding: 0 20px;
+  font-weight: 500;
+}
+</style>

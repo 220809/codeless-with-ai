@@ -1,7 +1,11 @@
 <template>
-  <div id="appEditPage">
-    <a-spin :spinning="loading">
-      <a-form :model="formState" v-bind="layout" name="app-edit-form" @finish="handleSubmit">
+  <div id="appEditPage" :class="{ 'modal-mode': isModalMode }">
+    <a-card :bordered="false" class="edit-card" v-if="!isModalMode">
+      <template #title>
+        <span class="card-title">编辑应用</span>
+      </template>
+      <a-spin :spinning="loading">
+        <a-form :model="formState" v-bind="layout" name="app-edit-form" @finish="handleSubmit" class="edit-form">
         <a-form-item
           name="name"
           label="应用名称"
@@ -56,12 +60,73 @@
             </a-button>
           </a-space>
         </a-form-item>
-      </a-form>
-    </a-spin>
+        </a-form>
+      </a-spin>
+    </a-card>
+    <div v-else>
+      <a-spin :spinning="loading">
+        <a-form :model="formState" v-bind="layout" name="app-edit-form" @finish="handleSubmit" class="edit-form">
+        <a-form-item
+          name="name"
+          label="应用名称"
+          :rules="[{ required: true, message: '请输入应用名称' }]"
+        >
+          <a-input v-model:value="formState.name" :disabled="!canEdit" />
+        </a-form-item>
+        <a-form-item name="cover" label="应用封面" v-if="isAdmin">
+          <a-input v-model:value="formState.cover" placeholder="请输入封面图片URL" />
+          <div v-if="formState.cover" style="margin-top: 8px">
+            <a-image :src="formState.cover" :height="120" />
+          </div>
+        </a-form-item>
+        <a-form-item name="priority" label="优先级" v-if="isAdmin">
+          <a-input-number
+            v-model:value="formState.priority"
+            :min="0"
+            :max="100"
+            style="width: 100%"
+            placeholder="优先级（0-100，99为精选）"
+          />
+          <div style="margin-top: 4px; color: #999; font-size: 12px">
+            提示：优先级设置为99时，应用将显示在精选列表中
+          </div>
+        </a-form-item>
+        <a-form-item name="id" label="应用ID" v-if="isAdmin">
+          <span>{{ formState.id }}</span>
+        </a-form-item>
+        <a-form-item name="initialPrompt" label="初始提示词" v-if="isAdmin">
+          <a-textarea v-model:value="formState.initialPrompt" :rows="4" disabled />
+        </a-form-item>
+        <a-form-item name="genFileType" label="文件类型" v-if="isAdmin">
+          <span>{{ formState.genFileType || '-' }}</span>
+        </a-form-item>
+        <a-form-item name="user" label="创建者" v-if="isAdmin">
+          <a-space>
+            <a-avatar v-if="formState.user?.avatarUrl" :src="formState.user.avatarUrl" :size="24" />
+            <span>{{ formState.user?.username || '-' }}</span>
+          </a-space>
+        </a-form-item>
+        <a-form-item name="createTime" label="创建时间" v-if="isAdmin">
+          <span>{{
+            formState.createTime ? dayjs(formState.createTime).format('YYYY-MM-DD HH:mm:ss') : '-'
+          }}</span>
+        </a-form-item>
+        <a-form-item :wrapper-col="{ ...layout.wrapperCol, offset: 4 }">
+          <a-space>
+            <a-button type="primary" html-type="submit" :loading="submitting">提交信息</a-button>
+            <a-button @click="handleCancel">取消</a-button>
+            <a-button v-if="canEdit" danger @click="handleDelete" :loading="deleting">
+              删除应用
+            </a-button>
+          </a-space>
+        </a-form-item>
+        </a-form>
+      </a-spin>
+    </div>
   </div>
 </template>
 <script lang="ts" setup>
-import { reactive, ref, onMounted, computed } from 'vue'
+import { reactive, ref, onMounted, computed, watch } from 'vue'
 import {
   updateApp,
   getAppById,
@@ -80,9 +145,17 @@ const layout = {
   wrapperCol: { span: 16 },
 }
 
+const props = defineProps<{
+  appId?: string | number
+}>()
+
+const emits = defineEmits(['closeModal'])
+
 const router = useRouter()
 const route = useRoute()
 const loginUserStore = useLoginUserStore()
+
+const isModalMode = computed(() => !!props.appId)
 
 const loading = ref(false)
 const submitting = ref(false)
@@ -96,16 +169,7 @@ const canEdit = computed(() => {
   return appData.value.userId === loginUserStore.loginUser.id
 })
 
-const formState = reactive<{
-  id?: string | number
-  name?: string
-  cover?: string
-  priority?: number
-  initialPrompt?: string
-  genFileType?: string
-  user?: API.LoginUserVo
-  createTime?: string
-}>({
+const formState = reactive<API.AppVo>({
   id: undefined,
   name: '',
   cover: '',
@@ -117,10 +181,12 @@ const formState = reactive<{
 })
 
 const fetchAppData = async () => {
-  const appId = route.query.id as string
+  const appId = isModalMode.value ? props.appId : (route.query.id as string)
   if (!appId) {
     message.error('缺少应用ID')
-    router.back()
+    if (!isModalMode.value) {
+      router.back()
+    }
     return
   }
 
@@ -141,7 +207,9 @@ const fetchAppData = async () => {
       // 检查权限
       if (!isAdmin.value && appData.value.userId !== loginUserStore.loginUser.id) {
         message.error('您没有权限编辑此应用')
-        router.back()
+        if (!isModalMode.value) {
+          router.back()
+        }
         return
       }
 
@@ -156,11 +224,15 @@ const fetchAppData = async () => {
       formState.createTime = appData.value.createTime
     } else {
       message.error('获取应用信息失败: ' + (res.data.message || '未知错误'))
-      router.back()
+      if (!isModalMode.value) {
+        router.back()
+      }
     }
   } catch (error: any) {
     message.error('获取应用信息失败: ' + (error.message || '网络错误'))
-    router.back()
+    if (!isModalMode.value) {
+      router.back()
+    }
   } finally {
     loading.value = false
   }
@@ -191,9 +263,13 @@ const handleSubmit = async (values: any) => {
       })
     }
 
-    if ((res.data.code === 200 || res.data.code === 0) && res.data.data) {
+    if (res.data.code === 200 && res.data.data) {
       message.success('修改信息成功!')
-      router.back()
+      if (isModalMode.value) {
+        emits('closeModal')
+      } else {
+        router.back()
+      }
     } else {
       message.error('操作失败, ' + (res.data.message || '未知错误'))
     }
@@ -205,7 +281,11 @@ const handleSubmit = async (values: any) => {
 }
 
 const handleCancel = () => {
-  router.back()
+  if (isModalMode.value) {
+    emits('closeModal')
+  } else {
+    router.back()
+  }
 }
 
 const handleDelete = () => {
@@ -232,7 +312,11 @@ const handleDelete = () => {
 
         if ((res.data.code === 200 || res.data.code === 0) && res.data.data) {
           message.success('删除成功!')
-          router.back()
+          if (isModalMode.value) {
+            emits('closeModal')
+          } else {
+            router.back()
+          }
         } else {
           message.error('删除失败, ' + (res.data.message || '未知错误'))
         }
@@ -248,13 +332,57 @@ const handleDelete = () => {
 onMounted(() => {
   fetchAppData()
 })
+
+watch(() => props.appId, (newId) => {
+  if (newId && isModalMode.value) {
+    fetchAppData()
+  }
+}, { immediate: false })
 </script>
-<style>
+<style scoped>
 #appEditPage {
-  max-width: 800px;
-  margin: 24px auto;
-  padding: 24px;
-  background: #fff;
-  border-radius: 8px;
+  padding: 0 24px;
+  background: transparent;
+}
+
+#appEditPage.modal-mode {
+  padding: 0;
+  background: transparent;
+  min-height: auto;
+}
+
+.edit-card {
+  max-width: 900px;
+  margin: 0 auto;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #262626;
+}
+
+.edit-form {
+  padding: 8px 0;
+}
+
+:deep(.ant-form-item-label > label) {
+  font-weight: 500;
+  color: #595959;
+}
+
+:deep(.ant-input),
+:deep(.ant-input-number),
+:deep(.ant-select-selector),
+:deep(.ant-input-number-input) {
+  border-radius: 4px;
+}
+
+:deep(.ant-btn) {
+  border-radius: 4px;
+  height: 36px;
+  padding: 0 20px;
+  font-weight: 500;
 }
 </style>

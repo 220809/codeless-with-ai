@@ -1,63 +1,68 @@
 <template>
   <div id="adminAppPage">
-    <a-form
-      name="advanced_search"
-      class="ant-advanced-search-form"
-      :model="searchParams"
-      @finish="handleSearch"
-    >
-      <a-row :gutter="20" style="text-align: center">
-        <a-col :span="4" />
-        <a-col :span="6">
-          <a-form-item name="name" label="应用名称" :label-col="{span: 5}">
-            <a-input v-model:value="searchParams.name" allow-clear></a-input>
-          </a-form-item>
-        </a-col>
-        <a-col :span="10">
-          <a-row :gutter="24">
-            <a-col :span="14">
-              <a-form-item name="id" label="应用ID" :label-col="{span: 5}">
-                <a-input-number v-model:value="searchParams.id" :min="1" allow-clear style="width: 100%"></a-input-number>
-              </a-form-item>
-            </a-col>
-            <a-col :span="6">
-              {{'(ID仅精确搜索)'}}
-            </a-col>
-          </a-row>
-        </a-col>
-      </a-row>
-      <a-row :gutter="16">
-        <a-col :span="4" />
-        <a-col :span="6">
-          <a-form-item name="genFileType" label="文件类型" :label-col="{span: 5}">
-            <a-input v-model:value="searchParams.genFileType" allow-clear></a-input>
-          </a-form-item>
-        </a-col>
-        <a-col :span="6">
-          <a-form-item name="priority" label="优先级" :label-col="{span: 5}">
-            <a-input-number v-model:value="searchParams.priority" :min="0" allow-clear style="width: 100%"></a-input-number>
-          </a-form-item>
-        </a-col>
-        <a-col :span="6">
-          <a-form-item name="userId" label="用户ID" :label-col="{span: 5}">
-            <a-input-number v-model:value="searchParams.userId" :min="1" allow-clear style="width: 100%"></a-input-number>
-          </a-form-item>
-        </a-col>
-      </a-row>
-      <a-row>
-        <a-col :span="16" style="text-align: right">
-          <a-button type="primary" html-type="submit">搜索</a-button>
-        </a-col>
-      </a-row>
-    </a-form>
-    <a-divider />
-    <a-table
-      :columns="columns"
-      :data-source="data"
-      :scroll="{ x: 1400, y: 800 }"
-      :pagination="pagination"
-      @change="onPageChange"
-    >
+    <a-card class="search-card" :bordered="false">
+      <template #title>
+        <span class="card-title">应用搜索</span>
+      </template>
+      <a-form
+        name="advanced_search"
+        class="ant-advanced-search-form"
+        :model="searchParams"
+        @finish="handleSearch"
+        ref="formRef"
+      >
+        <a-row :gutter="[16, 16]">
+          <a-col :xs="24" :sm="12" :md="8" :lg="6">
+            <a-form-item name="name" label="应用名称">
+              <a-input v-model:value="searchParams.name" placeholder="请输入应用名称" allow-clear />
+            </a-form-item>
+          </a-col>
+          <a-col :xs="24" :sm="12" :md="8" :lg="6">
+            <a-form-item name="id" label="应用ID">
+              <a-input-number v-model:value="searchParams.id" :min="1" placeholder="请输入应用ID" allow-clear style="width: 100%" />
+              <div class="form-tip">ID仅精确搜索</div>
+            </a-form-item>
+          </a-col>
+          <a-col :xs="24" :sm="12" :md="8" :lg="6">
+            <a-form-item name="genFileType" label="文件类型">
+              <a-input v-model:value="searchParams.genFileType" placeholder="请输入文件类型" allow-clear />
+            </a-form-item>
+          </a-col>
+          <a-col :xs="24" :sm="12" :md="8" :lg="6">
+            <a-form-item name="priority" label="优先级">
+              <a-input-number v-model:value="searchParams.priority" :min="0" placeholder="请输入优先级" allow-clear style="width: 100%" />
+            </a-form-item>
+          </a-col>
+          <a-col :xs="24" :sm="12" :md="8" :lg="6">
+            <a-form-item name="userId" label="用户ID">
+              <a-input-number v-model:value="searchParams.userId" :min="1" placeholder="请输入用户ID" allow-clear style="width: 100%" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-row>
+          <a-col :span="24" style="text-align: right">
+            <a-space>
+              <a-button @click="handleReset">重置</a-button>
+              <a-button type="primary" html-type="submit">
+                <template #icon><SearchOutlined /></template>
+                搜索
+              </a-button>
+            </a-space>
+          </a-col>
+        </a-row>
+      </a-form>
+    </a-card>
+    <a-card class="table-card" :bordered="false">
+      <template #title>
+        <span class="card-title">应用列表</span>
+      </template>
+      <a-table
+        :columns="columns"
+        :data-source="data"
+        :scroll="{ x: 1400, y: 800 }"
+        :pagination="pagination"
+        @change="onPageChange"
+      >
       <template #bodyCell="{ column, record }">
         <template v-if="column.dataIndex === 'cover'">
           <a-image v-if="record.cover" :src="record.cover" width="64px" />
@@ -91,10 +96,10 @@
           <a-space :size="4">
             <a-button type="primary" ghost size="small" @click="handleEdit(record)">编辑</a-button>
             <a-button danger ghost size="small" @click="handleDelete(record.id)">删除</a-button>
-            <a-button 
-              type="default" 
-              ghost 
-              size="small" 
+            <a-button
+              type="default"
+              ghost
+              size="small"
               :disabled="record.priority === 99"
               @click="handleSetFeatured(record)"
             >
@@ -104,6 +109,17 @@
         </template>
       </template>
     </a-table>
+    </a-card>
+    <a-modal
+      v-model:open="editModalOpen"
+      title="修改应用信息"
+      destroy-on-close
+      :footer="null"
+      width="960px"
+      centered
+    >
+      <app-edit-page :app-id="editAppId" @close-modal="handleCloseModal" />
+    </a-modal>
   </div>
 </template>
 <script lang="ts" setup>
@@ -111,9 +127,8 @@ import { message, type TableColumnsType } from 'ant-design-vue'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { adminDeleteApp, adminPageListApps, adminUpdateApp } from '@/api/app.ts'
 import dayjs from 'dayjs'
-import { useRouter } from 'vue-router'
-
-const router = useRouter()
+import { SearchOutlined } from '@ant-design/icons-vue'
+import AppEditPage from '@/pages/admin/AppEditPage.vue'
 
 const columns: TableColumnsType = [
   {
@@ -164,6 +179,8 @@ const columns: TableColumnsType = [
   },
 ]
 
+const formRef = ref();
+
 const data = ref<API.AppVo[]>([]);
 
 const defaultSearchParams = {
@@ -174,6 +191,9 @@ const defaultSearchParams = {
 const searchParams = reactive<API.AppSearchRequest>({...defaultSearchParams})
 
 const total = ref(0)
+
+const editModalOpen = ref(false)
+const editAppId = ref<string | number>()
 
 const fetchData = async () => {
   const res = await adminPageListApps({ ...searchParams })
@@ -210,6 +230,11 @@ const handleSearch = (values: any) => {
   fetchData()
 }
 
+const handleReset = () => {
+  Object.assign(searchParams, defaultSearchParams)
+  formRef.value.resetFields()
+}
+
 const handleDelete = async (id: number | string) => {
   if (!id) return
   try {
@@ -229,7 +254,8 @@ const handleDelete = async (id: number | string) => {
 const handleEdit = (record: API.AppVo) => {
   if (!record.id) return
   // 保持id为原始类型，避免精度丢失
-  router.push(`/admin/app/edit?id=${record.id}`)
+  editAppId.value = record.id as any
+  editModalOpen.value = true
 }
 
 const handleSetFeatured = async (record: API.AppVo) => {
@@ -250,10 +276,55 @@ const handleSetFeatured = async (record: API.AppVo) => {
     message.error('设置精选失败: ' + (error.message || '网络错误'))
   }
 }
+
+const handleCloseModal = () => {
+  editModalOpen.value = false
+  editAppId.value = undefined
+  fetchData()
+}
 </script>
-<style>
+<style scoped>
 #adminAppPage {
-  max-width: 1300px;
-  margin: 16px auto;
+  padding: 24px;
+  background: #f0f2f5;
+  min-height: calc(100vh - 64px);
+}
+
+.search-card {
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.table-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #262626;
+}
+
+.form-tip {
+  font-size: 12px;
+  color: #8c8c8c;
+  margin-top: 4px;
+}
+
+.ant-advanced-search-form {
+  padding: 0;
+}
+
+.ant-advanced-search-form .ant-form-item {
+  margin-bottom: 0;
+}
+
+:deep(.ant-table) {
+  background: #fff;
+}
+
+:deep(.ant-table-thead > tr > th) {
+  background: #fafafa;
+  font-weight: 600;
 }
 </style>
