@@ -26,9 +26,19 @@
       <div class="chat-area">
         <!-- 消息区域 -->
         <div class="messages-container" ref="messagesContainerRef">
+          <!-- 加载更多按钮 -->
+          <div v-if="hasMoreHistory" class="load-more-container">
+            <a-button
+              type="link"
+              :loading="loadingHistory"
+              @click="loadMoreHistory"
+            >
+              加载更多
+            </a-button>
+          </div>
           <div
             v-for="(msg, index) in messages"
-            :key="index"
+            :key="msg.id || index"
             :class="['message-item', msg.type === 'user' ? 'user-message' : 'ai-message']"
           >
             <a-avatar
@@ -80,20 +90,27 @@
       </div>
 
       <!-- 右侧网页展示区域 -->
+
       <div class="preview-area">
-        <div v-if="!previewReady" class="preview-placeholder">
-          <a-spin :spinning="!previewReady">
-            <template #tip>
-              {{ 'AI 生成完成后方可预览' }}
-            </template>
-          </a-spin>
-        </div>
-        <iframe
-          v-else
-          :src="previewUrl"
-          class="preview-iframe"
-          frameborder="0"
-        />
+          <div v-if="streaming" class="preview-placeholder">
+            <a-spin :spinning="streaming">
+              <template #tip>
+                {{ 'AI 正在生成网站, 请稍等...' }}
+              </template>
+            </a-spin>
+          </div>
+          <div v-else-if="!previewReady" class="preview-placeholder">
+            <div class="preview-tip">
+              <p>尝试与AI对话生成应用</p>
+            </div>
+          </div>
+          <iframe
+            v-else
+            :src="previewUrl"
+            class="preview-iframe"
+            frameborder="0"
+          />
+
       </div>
     </div>
 
@@ -151,6 +168,7 @@ import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { getAppById, deployApp } from '@/api/app.ts'
+import { pageListMyChatHistory } from '@/api/chatHistory.ts'
 import request from '@/request.ts'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import AppDetailModal from '@/components/AppDetailModal.vue'
@@ -167,6 +185,7 @@ const loading = ref(false)
 
 // 消息列表
 interface Message {
+  id?: string | number
   type: 'user' | 'ai'
   content: string,
   loading?: boolean,
@@ -175,6 +194,11 @@ interface Message {
 const messages = ref<Message[]>([])
 const userInput = ref('')
 const streaming = ref(false)
+
+// 对话历史相关
+const loadingHistory = ref(false)
+const lastRecentCreateTime = ref<string | undefined>(undefined)
+const hasMoreHistory = ref(false)
 
 // 预览相关
 const previewReady = ref(false)
@@ -212,6 +236,125 @@ const appId = ref<any>();
 // 消息容器引用（用于自动滚动）
 const messagesContainerRef = ref<HTMLElement>()
 
+// 加载对话历史
+const loadChatHistory = async (createTime?: string) => {
+  if (!appId.value) return
+
+  loadingHistory.value = true
+  try {
+    // 后端将Long类型id转换为了string，前端不应该转为Number，避免精度丢失
+    // 但API类型定义是number，所以使用as any绕过类型检查
+    const appIdForApi = typeof appId.value === 'string'
+      ? (appId.value as any) // 保持string类型，避免精度丢失
+      : (appId.value as any)
+
+    const res = await pageListMyChatHistory({
+      appId: appIdForApi,
+      pageSize: 10,
+      lastRecentCreateTime: createTime,
+    })
+
+    if ((res.data.code === 200 || res.data.code === 0) && res.data.data) {
+      const historyData = res.data.data
+      const records = historyData.records || []
+
+      // 后端返回的是降序，需要反转成升序
+      const reversedRecords = [...records].reverse()
+
+      // 转换为消息格式
+      const historyMessages: Message[] = []
+      for (const record of reversedRecords) {
+        if (record.messageContent) {
+          // 根据 messageType 判断是用户消息还是AI消息
+          // 通常 'user' 或 'USER' 表示用户消息，'ai' 或 'AI' 表示AI消息
+          const isUserMessage = record.messageType?.toLowerCase() === 'user' ||
+                                record.messageType === '0' ||
+                                !record.messageType // 如果没有 messageType，默认是用户消息
+
+          historyMessages.push({
+            id: record.id ? String(record.id) : undefined,
+            type: isUserMessage ? 'user' : 'ai',
+            content: record.messageContent,
+          })
+        }
+      }
+
+      if (createTime) {
+        // 加载更多：插入到列表前面
+        messages.value = [...historyMessages, ...messages.value]
+      } else {
+        // 首次加载：替换整个列表
+        messages.value = historyMessages
+      }
+
+      // 更新游标：使用最后一条记录的创建时间
+      if (records.length > 0) {
+        const lastRecord = records[records.length - 1]
+        lastRecentCreateTime.value = lastRecord.createTime
+        // 如果返回的记录数等于 pageSize，说明可能还有更多
+        hasMoreHistory.value = records.length >= 10
+      } else {
+        lastRecentCreateTime.value = undefined
+        hasMoreHistory.value = false
+      }
+
+      // 如果有历史消息，尝试显示预览（但不触发生成）
+      if (messages.value.length > 0 && !createTime) {
+        // 只在首次加载时检查预览，加载更多时不检查
+        await nextTick()
+        checkAndShowPreview()
+      }
+    } else {
+      console.error('加载对话历史失败:', res.data.message || '未知错误')
+    }
+  } catch (error: any) {
+    console.error('加载对话历史失败:', error)
+    message.error('加载对话历史失败: ' + (error.message || '网络错误'))
+  } finally {
+    loadingHistory.value = false
+  }
+}
+
+// 加载更多历史消息
+const loadMoreHistory = async () => {
+  if (!lastRecentCreateTime.value || loadingHistory.value) return
+  await loadChatHistory(lastRecentCreateTime.value)
+  await nextTick()
+  // 保持滚动位置
+  if (messagesContainerRef.value) {
+    const oldScrollHeight = messagesContainerRef.value.scrollHeight
+    const oldScrollTop = messagesContainerRef.value.scrollTop
+    const scrollDiff = messagesContainerRef.value.scrollHeight - oldScrollHeight
+    messagesContainerRef.value.scrollTop = oldScrollTop + scrollDiff
+  }
+}
+
+// 检查并显示预览
+const checkAndShowPreview = async () => {
+  if (!appData.value.genFileType || !appData.value.id) {
+    previewReady.value = false
+    return
+  }
+
+  // 尝试加载预览
+  const codeGenType = appData.value.genFileType
+  const appIdStr = String(appData.value.id) // 确保是字符串类型
+  const testUrl = `http://localhost:8888/api/app/preview/${codeGenType}_${appIdStr}/`
+
+  // 检查预览是否可用
+  try {
+    const response = await fetch(testUrl, { method: 'GET' })
+    if (response.ok) {
+      previewUrl.value = testUrl
+      previewReady.value = true
+    } else {
+      previewReady.value = false
+    }
+  } catch (error) {
+    previewReady.value = false
+  }
+}
+
 // 获取应用信息
 const fetchAppData = async () => {
   const id = route.query.id as string
@@ -222,21 +365,31 @@ const fetchAppData = async () => {
   }
   appId.value = id;
 
+  // 移除URL中的view参数（如果存在）
+  if (route.query.view) {
+    router.replace({
+      path: route.path,
+      query: { id: route.query.id }
+    })
+  }
+
   loading.value = true
   try {
     const res = await getAppById({ id: appId.value as any })
     if (res.data.code === 200 && res.data.data) {
       appData.value = res.data.data
 
-      if (messages.value.length >= 2) {
-        showPreview();
-      }
+      // 先加载对话历史
+      await loadChatHistory()
 
-      // 检查是否有view参数，如果有则不自动发送消息
-      // 目前使用 viewParam 防止查看对话时发送ai消息
-      const viewParam = route.query.view
-      if (!viewParam && appData.value.initialPrompt && messages.value.length === 0) {
+      // 如果是自己的app，并且没有对话历史，才自动发送initialPrompt
+      if (canEdit.value && messages.value.length === 0 && appData.value.initialPrompt) {
         await sendInitialMessage(appData.value.initialPrompt)
+      } else if (messages.value.length > 0) {
+        // 如果有历史消息，不触发AI生成，只检查预览
+        // 确保streaming状态为false，防止重复生成
+        streaming.value = false
+        await checkAndShowPreview()
       }
     } else {
       message.error('获取应用信息失败: ' + (res.data.message || '未知错误'))
@@ -422,15 +575,9 @@ const handleError = (error: unknown, aiMessageIndex: number) => {
   streaming.value = false
 }
 
-// 显示预览
-const showPreview = () => {
-  if (!appData.value.genFileType || !appData.value.id) return
-
-  // 构建预览URL：http://localhost:8888/api/app/preview/{codeGenType}_{appId}/
-  const codeGenType = appData.value.genFileType
-  const appId = appData.value.id
-  previewUrl.value = `http://localhost:8888/api/app/preview/${codeGenType}_${appId}/`
-  previewReady.value = true
+// 显示预览（在AI生成完成后调用）
+const showPreview = async () => {
+  await checkAndShowPreview()
 }
 
 // 部署应用
@@ -606,6 +753,11 @@ onMounted(() => {
   gap: 12px;
   max-width: 80%;
   min-width: 0;
+}
+
+.user-message {
+  align-self: flex-end;
+  flex-direction: row-reverse;
 }
 
 .ai-message {
@@ -827,6 +979,21 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.preview-tip {
+  text-align: center;
+  color: #8c8c8c;
+}
+
+.preview-tip p {
+  font-size: 16px;
+  margin: 0;
+}
+
+.load-more-container {
+  text-align: center;
+  padding: 16px 0;
 }
 
 .preview-iframe {

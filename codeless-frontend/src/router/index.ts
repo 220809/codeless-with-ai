@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import HomePage from '@/pages/HomePage.vue'
 import AdminUserPage from '@/pages/admin/AdminUserPage.vue'
 import AdminAppPage from '@/pages/admin/AdminAppPage.vue'
+import AdminChatPage from '@/pages/admin/AdminChatPage.vue'
 import AppEditPage from '@/pages/admin/AppEditPage.vue'
 import AppChatPage from '@/pages/app/AppChatPage.vue'
 import UserLoginPage from '@/pages/user/UserLoginPage.vue'
@@ -34,6 +35,11 @@ const router = createRouter({
       path: '/admin/app',
       name: 'admin_app',
       component: AdminAppPage,
+    },
+    {
+      path: '/admin/chat',
+      name: 'admin_chat',
+      component: AdminChatPage,
     },
     {
       path: '/admin/app/edit',

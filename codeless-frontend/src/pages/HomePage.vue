@@ -272,7 +272,7 @@ const handleViewChat = (app: API.AppVo) => {
   // 跳转到应用生成对话页面
   // 保持id为原始类型，避免精度丢失
   const appId = app.id
-  router.push(`/app/chat?id=${appId}${app.deployKey ? '&view=1' : ''}`);
+  router.push(`/app/chat?id=${appId}`);
 }
 
 // 查看作品

@@ -28,8 +28,8 @@ export async function pageListMyChatHistory(
     method: 'GET',
     params: {
       // pageSize has a default value: 10
-      pageSize: '10',
-      ...queryParams,
+      pageSize: queryParams.pageSize ?? 10,
+      lastRecentCreateTime: queryParams.lastRecentCreateTime,
     },
     ...(options || {}),
   })
