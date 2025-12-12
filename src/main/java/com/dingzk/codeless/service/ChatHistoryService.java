@@ -5,6 +5,7 @@ import com.dingzk.codeless.model.entity.ChatHistory;
 import com.dingzk.codeless.model.entity.User;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.service.IService;
+import dev.langchain4j.memory.ChatMemory;
 
 import java.time.LocalDateTime;
 
@@ -14,6 +15,15 @@ import java.time.LocalDateTime;
  * @author dingzk
  */
 public interface ChatHistoryService extends IService<ChatHistory> {
+
+    /**
+     * 加载聊天历史到 ChatMemory
+     * @param appId 应用id
+     * @param chatMemory chatMemory
+     * @param fetchSize 加载条数
+     * @return 加载条数
+     */
+    int loadChatHistoryToChatMemory(long appId, ChatMemory chatMemory, int fetchSize);
 
     /**
      * 新增对话消息

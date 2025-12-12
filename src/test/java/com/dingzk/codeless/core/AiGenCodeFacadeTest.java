@@ -31,11 +31,27 @@ class AiGenCodeFacadeTest {
     @Test
     void streamingGenerateAndSaveCodeFileTest() {
         Flux<String> fluxResult = aiGenCodeFacade
-                .streamingGenerateAndSaveCodeFile("帮我生成一个注册页面, 代码限制在50行以内",
+                .streamingGenerateAndSaveCodeFile("帮我生成一个简易计算器工具, 代码限制在20行以内",
                         GenFileTypeEnum.MULTI_FILE, TEST_APP_ID);
         List<String> stringList = fluxResult.collectList().block();
         assertNotNull(stringList);
         String stringResult = String.join("", stringList);
         assertNotNull(stringResult);
+    }
+
+    @Test
+    void streamingGenerateAndSaveCodeFileTest_ChatMemory() {
+        Flux<String> fluxResult = aiGenCodeFacade
+                .streamingGenerateAndSaveCodeFile("帮我生成一个简易计算器工具, 代码限制在20行以内.",
+                        GenFileTypeEnum.MULTI_FILE, TEST_APP_ID);
+        // 等待 ai 回复结果
+        List<String> stringList = fluxResult.collectList().block();
+        assertNotNull(stringList);
+        fluxResult = aiGenCodeFacade
+                .streamingGenerateAndSaveCodeFile("接下来你不需要生成代码，请告诉我你刚刚做了什么?",
+                        GenFileTypeEnum.MULTI_FILE, TEST_APP_ID);
+        // 等待 ai 回复结果
+        stringList = fluxResult.collectList().block();
+        assertNotNull(stringList);
     }
 }

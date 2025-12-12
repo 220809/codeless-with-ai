@@ -13,12 +13,17 @@ import com.dingzk.codeless.service.ChatHistoryService;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.memory.ChatMemory;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * 聊天历史服务实现类
@@ -26,6 +31,7 @@ import java.util.Collections;
  * @author dingzk
  */
 @Service
+@Slf4j
 public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatHistory> implements ChatHistoryService {
 
     /**
@@ -37,6 +43,47 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
      * 用户查询最大页面大小
      */
     private static final int USER_MAX_PAGE_SIZE = 20;
+
+    @Override
+    public int loadChatHistoryToChatMemory(long appId, ChatMemory chatMemory, int fetchSize) {
+        // 1. 参数校验
+        ThrowUtils.throwIf(appId <= 0, ErrorCode.BAD_PARAM_ERROR, "非法的应用id");
+        QueryWrapper queryWrapper = QueryWrapper.create()
+                .eq(ChatHistory::getAppId, appId)
+                .orderBy(ChatHistory::getCreateTime, false)
+                // 将用户最新的用户消息排除
+                // 首次进入对话时，当前app没有记忆，所以加载记忆时要排除初始提示词，所以实际上记忆为空
+                // 缓存过期后重新创建 ChatMemory，当用户发送消息后，才会将历史对话加载到 ChatMemory，但不应该有最新一条消息的记忆
+                .limit(1, fetchSize);
+        try {
+            // 先清空 chatMemory
+            chatMemory.clear();
+            // 2. 查询聊天历史
+            List<ChatHistory> chatHistoryList = this.list(queryWrapper);
+            if (CollectionUtils.isEmpty(chatHistoryList)) {
+                log.info("应用[appId: {}]: 没有历史消息", appId);
+                return 0;
+            }
+            int loadedCount = 0;
+            // 此处系统消息可能会不在首位, 可以考虑优化
+            // chatHistory 创建时间降序: 最近->最晚，保存至chatMemory需要恢复为升序
+            Collections.reverse(chatHistoryList);
+            for (ChatHistory chatHistory : chatHistoryList) {
+                String messageType = chatHistory.getMessageType();
+                if (ChatMessageTypeEnum.USER.getType().equals(messageType)) {
+                    chatMemory.add(UserMessage.from(chatHistory.getMessageContent()));
+                } else if (ChatMessageTypeEnum.AI.getType().equals(messageType)) {
+                    chatMemory.add(AiMessage.from(chatHistory.getMessageContent()));
+                }
+                loadedCount++;
+            }
+            log.info("应用[appId: {}]: 加载 {} 条历史消息到 ChatMemory", appId, loadedCount);
+            return loadedCount;
+        } catch (Exception e) {
+            log.error("应用[appId: {}]: 加载历史消息到 ChatMemory 失败, cause: {}", appId, e.getMessage());
+            return 0;
+        }
+    }
 
     @Override
     public long addChatHistory(Long appId, String messageContent, String messageType, User loginUser) {

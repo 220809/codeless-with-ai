@@ -1,7 +1,7 @@
 package com.dingzk.codeless.ai;
 
-import com.dingzk.codeless.ai.model.SingleHtmlCodeResult;
 import com.dingzk.codeless.ai.model.MultiFileCodeResult;
+import com.dingzk.codeless.ai.model.SingleHtmlCodeResult;
 import dev.langchain4j.service.SystemMessage;
 import reactor.core.publisher.Flux;
 

@@ -8,10 +8,27 @@ spring:
     url:
     username:
     password:
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      password:
+      # 自定义 key 过期时间：1小时
+      ttl: 3600
+      database: 0
+  # session 配置
+  session:
+    store-type: redis
+    # session 7 天过期
+    timeout: 604800
 server:
   port: 8888
   servlet:
     context-path: /api
+    session:
+      cookie:
+        # cookie 7 天过期
+        max-age: 604800
 
 # springdoc-openapi项目配置
 springdoc:

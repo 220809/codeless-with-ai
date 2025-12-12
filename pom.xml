@@ -124,6 +124,11 @@
             <artifactId>langchain4j-reactor</artifactId>
             <version>1.9.1-beta17</version>
         </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-community-redis-spring-boot-starter</artifactId>
+            <version>1.9.1-beta17</version>
+        </dependency>
 
         <!-- Hutool-json -->
         <!-- https://mvnrepository.com/artifact/cn.hutool/hutool-json -->
@@ -131,6 +136,19 @@
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-json</artifactId>
             <version>5.8.42</version>
+        </dependency>
+
+        <!-- Caffeine -->
+        <!-- https://mvnrepository.com/artifact/com.github.ben-manes.caffeine/caffeine -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>3.1.8</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.session</groupId>
+            <artifactId>spring-session-data-redis</artifactId>
         </dependency>
     </dependencies>
 

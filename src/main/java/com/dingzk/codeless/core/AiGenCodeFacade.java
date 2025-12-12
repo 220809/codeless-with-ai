@@ -1,6 +1,7 @@
 package com.dingzk.codeless.core;
 
 import com.dingzk.codeless.ai.AiGenCodeService;
+import com.dingzk.codeless.ai.AiGenCodeServiceFactory;
 import com.dingzk.codeless.core.parser.CodeParserExecutor;
 import com.dingzk.codeless.core.saver.CodeSaverExecutor;
 import com.dingzk.codeless.exception.BusinessException;
@@ -26,6 +27,9 @@ public class AiGenCodeFacade {
 
     @Resource
     private AiGenCodeService aiGenCodeService;
+
+    @Resource
+    private AiGenCodeServiceFactory aiGenCodeServiceFactory;
 
     /**
      * 统一调用: 生成代码并保存到本地
@@ -55,9 +59,10 @@ public class AiGenCodeFacade {
     public Flux<String> streamingGenerateAndSaveCodeFile(String userMessage, GenFileTypeEnum fileType, Long appId) {
         ThrowUtils.throwIf(fileType == null, ErrorCode.BAD_PARAM_ERROR, "生成文件类型不能为空");
         Flux<String> streamingResult;
+        AiGenCodeService genCodeService = aiGenCodeServiceFactory.getAiGenCodeService(appId);
         switch (fileType) {
-            case SINGLE_HTML -> streamingResult = aiGenCodeService.streamingGenSingleHtmlCode(userMessage);
-            case MULTI_FILE -> streamingResult = aiGenCodeService.streamingGenMultiFileCode(userMessage);
+            case SINGLE_HTML -> streamingResult = genCodeService.streamingGenSingleHtmlCode(userMessage);
+            case MULTI_FILE -> streamingResult = genCodeService.streamingGenMultiFileCode(userMessage);
             default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, "代码保存类型错误");
         }
         return streamingGenerateAndSaveCode(streamingResult, fileType, appId);
