@@ -1,15 +1,21 @@
 package com.dingzk.codeless.core;
 
+import cn.hutool.json.JSONUtil;
 import com.dingzk.codeless.ai.AiGenCodeService;
 import com.dingzk.codeless.ai.AiGenCodeServiceFactory;
+import com.dingzk.codeless.ai.model.message.AiResponseMessage;
+import com.dingzk.codeless.ai.model.message.ToolExecutionMessage;
+import com.dingzk.codeless.ai.model.message.ToolRequestMessage;
 import com.dingzk.codeless.core.parser.CodeParserExecutor;
 import com.dingzk.codeless.core.saver.CodeSaverExecutor;
 import com.dingzk.codeless.exception.BusinessException;
 import com.dingzk.codeless.exception.ErrorCode;
 import com.dingzk.codeless.exception.ThrowUtils;
 import com.dingzk.codeless.model.enums.GenFileTypeEnum;
+import dev.langchain4j.service.TokenStream;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
@@ -25,7 +31,9 @@ import java.io.File;
 @Component
 public class AiGenCodeFacade {
 
+    // @Lazy 避免测试 bean 干扰项目，此 Bean 由 AiGenCodeServiceFactory.aiGenCodeService 创建
     @Resource
+    @Lazy
     private AiGenCodeService aiGenCodeService;
 
     @Resource
@@ -64,7 +72,8 @@ public class AiGenCodeFacade {
         switch (fileType) {
             case SINGLE_HTML -> streamingResult = genCodeService.streamingGenSingleHtmlCode(userMessage);
             case MULTI_FILE -> streamingResult = genCodeService.streamingGenMultiFileCode(userMessage);
-            case VUE_PROJECT -> streamingResult = genCodeService.streamingGenVueProjectCode(appId, userMessage);
+            case VUE_PROJECT -> streamingResult =
+                    processTokenStreamingResult(genCodeService.streamingGenVueProjectCode(appId, userMessage));
             default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, "代码保存类型错误");
         }
         return streamingGenerateAndSaveCode(streamingResult, fileType, appId);
@@ -92,5 +101,35 @@ public class AiGenCodeFacade {
                         log.error("Failed to save code files, message: {}", e.getMessage());
                     }
                 });
+    }
+
+    /**
+     * 处理 TokenStream 结果: 将流式结果包装为指定的 Json 数据, 并转换为 flux
+     * @param tokenStream tokenStream
+     * @return flux
+     */
+    private Flux<String> processTokenStreamingResult(TokenStream tokenStream) {
+        return Flux.create(sink -> {
+            tokenStream.onPartialResponse(partialResponse -> {
+                // 包装 ai 流式消息
+                AiResponseMessage aiResponseMessage = new AiResponseMessage(partialResponse);
+                sink.next(JSONUtil.toJsonStr(aiResponseMessage));
+            }).beforeToolExecution(beforeToolExecution -> {
+                // 包装工具执行前消息
+                ToolRequestMessage toolRequestMessage = new ToolRequestMessage(beforeToolExecution);
+                sink.next(JSONUtil.toJsonStr(toolRequestMessage));
+            }).onToolExecuted(toolExecution -> {
+                // 包装工具执行后消息
+                ToolExecutionMessage toolExecutionMessage = new ToolExecutionMessage(toolExecution);
+                sink.next(JSONUtil.toJsonStr(toolExecutionMessage));
+            }).onCompleteResponse(completeResponse -> {
+                // 流结束
+                sink.complete();
+            }).onError(error -> {
+                // 错误处理
+                log.error("处理 TokenStream 遇到了错误: {}", error.getMessage());
+                sink.error(error);
+            }).start();
+        });
     }
 }

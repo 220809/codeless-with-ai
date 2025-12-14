@@ -21,6 +21,8 @@ public class CodeSaverExecutor {
         return switch (genFileType) {
             case SINGLE_HTML -> SINGLE_HTML_CODE_SAVER.save((SingleHtmlCodeResult) codeResult, appId);
             case MULTI_FILE -> MULTI_FILE_CODE_SAVER.save((MultiFileCodeResult) codeResult, appId);
+            // vue_project 类型项目文件使用工具保存，保存器这里不再处理
+            case VUE_PROJECT -> new File("");
             default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, "代码保存类型错误");
         };
     }

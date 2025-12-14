@@ -4,6 +4,7 @@ import com.dingzk.codeless.ai.model.MultiFileCodeResult;
 import com.dingzk.codeless.ai.model.SingleHtmlCodeResult;
 import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;
+import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.UserMessage;
 import reactor.core.publisher.Flux;
 
@@ -53,5 +54,5 @@ public interface AiGenCodeService {
      * @return AI返回内容
      */
     @SystemMessage(fromResource = "prompts/gencode_vue_project_prompt.txt")
-    Flux<String> streamingGenVueProjectCode(@MemoryId long appId, @UserMessage String userMessage);
+    TokenStream streamingGenVueProjectCode(@MemoryId long appId, @UserMessage String userMessage);
 }

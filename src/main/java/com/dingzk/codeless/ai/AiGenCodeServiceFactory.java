@@ -12,7 +12,6 @@ import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.service.AiServices;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.time.Duration;
@@ -120,10 +119,10 @@ public class AiGenCodeServiceFactory {
 
 
     /**
-     * 测试调用 ai 使用
+     * 测试调用 ai 使用，需要使用时将 @Bean 取消注释
      * @return 用于测试的 aiService
      */
-    @Bean
+//    @Bean
     public AiGenCodeService aiGenCodeService() {
         return createAiGenCodeService(1L);
     }

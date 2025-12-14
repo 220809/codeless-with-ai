@@ -3,6 +3,8 @@ package com.dingzk.codeless.service.impl;
 import com.dingzk.codeless.common.SearchRequest;
 import com.dingzk.codeless.constant.AppConstant;
 import com.dingzk.codeless.core.AiGenCodeFacade;
+import com.dingzk.codeless.core.builder.VueProjectBuilder;
+import com.dingzk.codeless.core.handler.MessageHandlerExecutor;
 import com.dingzk.codeless.exception.BusinessException;
 import com.dingzk.codeless.exception.ErrorCode;
 import com.dingzk.codeless.exception.ThrowUtils;
@@ -59,6 +61,12 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Resource
     private ChatHistoryService chatHistoryService;
 
+    @Resource
+    private MessageHandlerExecutor messageHandlerExecutor;
+
+    @Resource
+    private VueProjectBuilder vueProjectBuilder;
+
     /**
      * 应用名称最大长度
      */
@@ -92,11 +100,27 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 3. 拷贝应用文件到部署目录
         // 检查源目录
         String sourceDirPath = AppConstant.CODE_FILE_SAVE_BASE_PATH;
-        String appBaseDirName = StringUtils.join(app.getGenFileType(), "_", app.getId());
+        String genFileType = app.getGenFileType();
+        String appBaseDirName = StringUtils.join(genFileType, "_", app.getId());
         String appBaseDirPath = StringUtils.join(sourceDirPath, File.separator, appBaseDirName);
         File appBaseDir = new File(appBaseDirPath);
         ThrowUtils.throwIf(!appBaseDir.exists() || !appBaseDir.isDirectory(),
                 ErrorCode.SYSTEM_ERROR, "应用文件不存在");
+
+        //  Vue 项目特殊处理：执行构建
+        GenFileTypeEnum genFileTypeEnum = GenFileTypeEnum.getByName(genFileType);
+        if (genFileTypeEnum == GenFileTypeEnum.VUE_PROJECT) {
+            // Vue 项目需要构建
+            boolean buildSuccess = vueProjectBuilder.buildProject(appBaseDirPath);
+            ThrowUtils.throwIf(!buildSuccess, ErrorCode.SYSTEM_ERROR, "Vue 项目构建失败，请检查代码和依赖");
+            // 检查 dist 目录是否存在
+            File distDir = new File(appBaseDirPath, "dist");
+            ThrowUtils.throwIf(!distDir.exists(), ErrorCode.SYSTEM_ERROR, "Vue 项目构建完成但未生成 dist 目录");
+            // 将 dist 目录作为部署源
+            appBaseDir = distDir;
+            log.info("Vue 项目构建成功，部署 dist 目录至: {}", distDir.getAbsolutePath());
+        }
+
         // 检查应用部署目录（目标目录）
         String deployBaseDirPath = AppConstant.CODE_FILE_DEPLOY_BASE_PATH;
         String appDeployDirPath = StringUtils.join(deployBaseDirPath, File.separator, deployKey);
@@ -138,20 +162,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
         // ai 返回完整消息后保存ai消息
         Flux<String> aiMessageFlux = aiGenCodeFacade.streamingGenerateAndSaveCodeFile(userMessage, genFileType, app.getId());
-        StringBuilder aiMessageBuilder = new StringBuilder();
-        return aiMessageFlux.map(chunk -> {
-            aiMessageBuilder.append(chunk);
-            return chunk;
-        }).doOnComplete(() -> {
-           String aiMessage = aiMessageBuilder.toString();
-           if (StringUtils.isNotBlank(aiMessage)) {
-               chatHistoryService.addChatHistory(appId, aiMessage, ChatMessageTypeEnum.AI.getType(), loginUser);
-           }
-        }).doOnError(error -> {
-            // 错误时保存异常消息
-            String errorMessage = StringUtils.join("生成代码失败: ", error.getMessage());
-            chatHistoryService.addChatHistory(appId, errorMessage, ChatMessageTypeEnum.AI.getType(), loginUser);
-        });
+        // 根据生成项目类型，分别处理并保存消息到数据库
+        return messageHandlerExecutor.execute(aiMessageFlux, chatHistoryService, appId, loginUser, genFileType);
     }
 
     @Override
@@ -169,7 +181,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 初始以提示词前16个字符作为应用名称
         app.setName(StringUtils.substring(initialPrompt, 0, 15));
         // 暂定为多文件类型
-        app.setGenFileType(GenFileTypeEnum.MULTI_FILE.getName());
+//        app.setGenFileType(GenFileTypeEnum.MULTI_FILE.getName());
+        // 暂定为vue_project类型测试
+        app.setGenFileType(GenFileTypeEnum.VUE_PROJECT.getName());
 
         // 3. 保存应用
         boolean result = this.save(app);
