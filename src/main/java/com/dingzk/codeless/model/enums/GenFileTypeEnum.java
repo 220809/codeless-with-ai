@@ -9,7 +9,8 @@ import lombok.RequiredArgsConstructor;
 public enum GenFileTypeEnum {
 
     SINGLE_HTML("single_html", "单文件html代码"),
-    MULTI_FILE("multi_file", "多文件代码");
+    MULTI_FILE("multi_file", "多文件代码"),
+    VUE_PROJECT("vue_project", "Vue项目模式");
 
     /**
      * 生成文件类型名

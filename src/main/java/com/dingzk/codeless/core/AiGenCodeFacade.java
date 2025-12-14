@@ -59,10 +59,12 @@ public class AiGenCodeFacade {
     public Flux<String> streamingGenerateAndSaveCodeFile(String userMessage, GenFileTypeEnum fileType, Long appId) {
         ThrowUtils.throwIf(fileType == null, ErrorCode.BAD_PARAM_ERROR, "生成文件类型不能为空");
         Flux<String> streamingResult;
-        AiGenCodeService genCodeService = aiGenCodeServiceFactory.getAiGenCodeService(appId);
+        boolean useReasonerModel = fileType.equals(GenFileTypeEnum.VUE_PROJECT);
+        AiGenCodeService genCodeService = aiGenCodeServiceFactory.getAiGenCodeService(appId, useReasonerModel);
         switch (fileType) {
             case SINGLE_HTML -> streamingResult = genCodeService.streamingGenSingleHtmlCode(userMessage);
             case MULTI_FILE -> streamingResult = genCodeService.streamingGenMultiFileCode(userMessage);
+            case VUE_PROJECT -> streamingResult = genCodeService.streamingGenVueProjectCode(appId, userMessage);
             default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, "代码保存类型错误");
         }
         return streamingGenerateAndSaveCode(streamingResult, fileType, appId);

@@ -1,9 +1,11 @@
 package com.dingzk.codeless.ai;
 
+import com.dingzk.codeless.ai.tools.FileWriteTool;
 import com.dingzk.codeless.service.ChatHistoryService;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
+import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
@@ -29,7 +31,10 @@ public class AiGenCodeServiceFactory {
     private ChatModel chatModel;
 
     @Resource
-    private StreamingChatModel streamingChatModel;
+    private StreamingChatModel openAiStreamingChatModel;
+
+    @Resource
+    private StreamingChatModel streamingReasonerChatModel;
 
     @Resource
     private RedisChatMemoryStore redisChatMemoryStore;
@@ -37,7 +42,7 @@ public class AiGenCodeServiceFactory {
     @Resource
     private ChatHistoryService chatHistoryService;
 
-    private static final int MAX_MESSAGE_COUNT = 20;
+    private static final int MAX_MESSAGE_COUNT = 40;
 
     /**
      * aiService 本地缓存
@@ -51,11 +56,39 @@ public class AiGenCodeServiceFactory {
             })
             .build();
 
+    /**
+     * 获取 AiGenCodeService（非推理模型用）
+     * @param appId appId
+     * @return AiGenCodeService
+     */
     public AiGenCodeService getAiGenCodeService(long appId) {
-        return aiServiceCache.get(appId, this::createAiGenCodeService);
+        return getAiGenCodeService(appId, false);
     }
 
+    /**
+     * 获取 AiGenCodeService（通用）
+     * @param appId appId
+     * @return AiGenCodeService
+     */
+    public AiGenCodeService getAiGenCodeService(long appId, boolean useReasonerModel) {
+        return aiServiceCache.get(appId, id -> createAiGenCodeService(id, useReasonerModel));
+    }
+
+    /**
+     * 创建 AiGenCodeService（非推理模型用）
+     * @param appId appId
+     * @return AiGenCodeService
+     */
     private AiGenCodeService createAiGenCodeService(long appId) {
+        // single_html、multi_file 模式使用非推理模型
+        return createAiGenCodeService(appId, false);
+    }
+    /**
+     * 创建 AiGenCodeService（通用）
+     * @param appId appId
+     * @return AiGenCodeService
+     */
+    private AiGenCodeService createAiGenCodeService(long appId, boolean useReasonerModel) {
         MessageWindowChatMemory chatMemory = MessageWindowChatMemory.builder()
                 .id(appId)  // 使用 appId 作为对话记忆id, 在应用层面隔离
                 .chatMemoryStore(redisChatMemoryStore) // 对话记忆存储
@@ -63,18 +96,35 @@ public class AiGenCodeServiceFactory {
                 .build();
         // 加载对话历史
         chatHistoryService.loadChatHistoryToChatMemory(appId, chatMemory, MAX_MESSAGE_COUNT);
+
+        if (useReasonerModel) {
+            // 使用推理模型，并使用工具调用
+            return AiServices.builder(AiGenCodeService.class)
+                    .chatModel(chatModel)
+                    .streamingChatModel(streamingReasonerChatModel)
+                    .chatMemoryProvider(memoryId -> chatMemory)
+                    // 定义工具
+                    .tools(new FileWriteTool())
+                    // 模型幻觉处理（调用不存在的工具时）
+                    .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
+                            toolExecutionRequest, String.format("Error: tool[%s] not found", toolExecutionRequest.name())
+                    )).build();
+        }
+        // 使用非推理模型
         return AiServices.builder(AiGenCodeService.class)
                 .chatModel(chatModel)
-                .streamingChatModel(streamingChatModel)
+                .streamingChatModel(openAiStreamingChatModel)
                 .chatMemory(chatMemory)
                 .build();
     }
 
+
+    /**
+     * 测试调用 ai 使用
+     * @return 用于测试的 aiService
+     */
     @Bean
     public AiGenCodeService aiGenCodeService() {
-        return AiServices.builder(AiGenCodeService.class)
-                .chatModel(chatModel)
-                .streamingChatModel(streamingChatModel)
-                .build();
+        return createAiGenCodeService(1L);
     }
 }

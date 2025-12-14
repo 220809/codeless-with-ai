@@ -2,7 +2,9 @@ package com.dingzk.codeless.ai;
 
 import com.dingzk.codeless.ai.model.MultiFileCodeResult;
 import com.dingzk.codeless.ai.model.SingleHtmlCodeResult;
+import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;
+import dev.langchain4j.service.UserMessage;
 import reactor.core.publisher.Flux;
 
 /**
@@ -44,4 +46,12 @@ public interface AiGenCodeService {
      */
     @SystemMessage(fromResource = "prompts/gencode_multi_file_prompt.txt")
     Flux<String> streamingGenMultiFileCode(String userMessage);
+
+    /**
+     * 生成Vue项目代码（流式输出）
+     * @param userMessage 用户输入
+     * @return AI返回内容
+     */
+    @SystemMessage(fromResource = "prompts/gencode_vue_project_prompt.txt")
+    Flux<String> streamingGenVueProjectCode(@MemoryId long appId, @UserMessage String userMessage);
 }

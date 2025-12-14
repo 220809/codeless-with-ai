@@ -54,4 +54,14 @@ class AiGenCodeFacadeTest {
         stringList = fluxResult.collectList().block();
         assertNotNull(stringList);
     }
+
+    @Test
+    void streamingGenerateAndSaveCodeFileTest_GenVueProject() {
+        Flux<String> fluxResult = aiGenCodeFacade
+                .streamingGenerateAndSaveCodeFile("帮我生成一个简单的登录页面，总代码行不超过200行",
+                        GenFileTypeEnum.VUE_PROJECT, TEST_APP_ID);
+        // 等待 ai 回复结果
+        List<String> stringList = fluxResult.collectList().block();
+        assertNotNull(stringList);
+    }
 }
