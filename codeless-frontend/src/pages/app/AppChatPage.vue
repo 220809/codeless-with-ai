@@ -175,6 +175,7 @@ import AppDetailModal from '@/components/AppDetailModal.vue'
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
+import { CodeGenTypeEnum } from '@/utils/constants.ts'
 
 const route = useRoute()
 const router = useRouter()
@@ -339,10 +340,14 @@ const checkAndShowPreview = async () => {
   // 尝试加载预览
   const codeGenType = appData.value.genFileType
   const appIdStr = String(appData.value.id) // 确保是字符串类型
-  const testUrl = `http://localhost:8888/api/app/preview/${codeGenType}_${appIdStr}/`
+  let testUrl = `http://localhost:8888/api/app/preview/${codeGenType}_${appIdStr}/`
 
   // 检查预览是否可用
   try {
+    const isVueProject = appData.value.genFileType === CodeGenTypeEnum.VUE_PROJECT;
+    if (isVueProject) {
+      testUrl += 'dist/index.html';
+    }
     const response = await fetch(testUrl, { method: 'GET' })
     if (response.ok) {
       previewUrl.value = testUrl
