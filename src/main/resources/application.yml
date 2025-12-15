@@ -70,3 +70,12 @@ langchain4j:
       max-tokens: 8192
       # 避免重试节省成本
       max-retries: 1
+
+# 腾讯云对象存储配置
+cos:
+  client:
+    host:
+    secret-id:
+    secret-key:
+    bucket:
+    region:

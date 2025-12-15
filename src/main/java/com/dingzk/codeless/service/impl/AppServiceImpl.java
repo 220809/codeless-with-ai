@@ -21,6 +21,7 @@ import com.dingzk.codeless.model.vo.AppVo;
 import com.dingzk.codeless.model.vo.LoginUserVo;
 import com.dingzk.codeless.service.AppService;
 import com.dingzk.codeless.service.ChatHistoryService;
+import com.dingzk.codeless.service.ScreenshotService;
 import com.dingzk.codeless.service.UserService;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
@@ -66,6 +67,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Resource
     private VueProjectBuilder vueProjectBuilder;
+
+    @Resource
+    private ScreenshotService screenshotService;
 
     /**
      * 应用名称最大长度
@@ -141,7 +145,22 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR, "更新应用部署信息失败");
 
         // 返回应用访问url
-        return StringUtils.join(AppConstant.WEB_DEPLOY_BASE_URL, deployKey);
+        String deployedUrl = StringUtils.join(AppConstant.WEB_DEPLOY_BASE_URL, deployKey);
+        // 异步生成封面
+        doAppScreenshotAsync(deployedUrl, appId);
+        return deployedUrl;
+    }
+
+    private void doAppScreenshotAsync(String url, long appId) {
+        Thread.startVirtualThread(() -> {
+            String coverUrl = screenshotService.doScreenshotAndUpload(url);
+            // 更新 app cover 字段
+            App app = new App();
+            app.setId(appId);
+            app.setCover(coverUrl);
+            boolean updateResult = this.updateById(app);
+            ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR, "更新应用封面失败");
+        });
     }
 
     @Override
