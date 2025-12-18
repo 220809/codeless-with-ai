@@ -45,7 +45,7 @@ export const APP_PRIORITY = {
  * 代码生成类型枚举
  */
 export enum CodeGenTypeEnum {
-  HTML = 'html',
+  SINGLE_HTML = 'single_html',
   MULTI_FILE = 'multi_file',
   VUE_PROJECT = 'vue_project',
 }
@@ -54,9 +54,9 @@ export enum CodeGenTypeEnum {
  * 代码生成类型配置
  */
 export const CODE_GEN_TYPE_CONFIG = {
-  [CodeGenTypeEnum.HTML]: {
+  [CodeGenTypeEnum.SINGLE_HTML]: {
     label: '原生 HTML 模式',
-    value: CodeGenTypeEnum.HTML,
+    value: CodeGenTypeEnum.SINGLE_HTML,
   },
   [CodeGenTypeEnum.MULTI_FILE]: {
     label: '原生多文件模式',

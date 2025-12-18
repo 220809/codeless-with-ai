@@ -1,5 +1,6 @@
 package com.dingzk.codeless.service.impl;
 
+import com.dingzk.codeless.ai.AiGenFileTypeRoutingService;
 import com.dingzk.codeless.common.SearchRequest;
 import com.dingzk.codeless.constant.AppConstant;
 import com.dingzk.codeless.core.AiGenCodeFacade;
@@ -70,6 +71,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Resource
     private ScreenshotService screenshotService;
+
+    @Resource
+    private AiGenFileTypeRoutingService aiGenFileTypeRoutingService;
 
     /**
      * 应用名称最大长度
@@ -199,10 +203,10 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         app.setUserId(loginUser.getId());
         // 初始以提示词前16个字符作为应用名称
         app.setName(StringUtils.substring(initialPrompt, 0, 15));
-        // 暂定为多文件类型
-//        app.setGenFileType(GenFileTypeEnum.MULTI_FILE.getName());
-        // 暂定为vue_project类型测试
-        app.setGenFileType(GenFileTypeEnum.VUE_PROJECT.getName());
+
+        // ai 智能选择项目生成类型
+        GenFileTypeEnum genFileType = aiGenFileTypeRoutingService.routeGenFileType(initialPrompt);
+        app.setGenFileType(genFileType.getName());
 
         // 3. 保存应用
         boolean result = this.save(app);

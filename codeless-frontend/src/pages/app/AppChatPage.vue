@@ -4,6 +4,9 @@
     <div class="top-bar">
       <div class="top-bar-left">
         <h2 class="app-name">{{ appData.name || '未命名应用' }}</h2>
+        <a-tag v-if="genFileTypeLabel" color="blue" style="margin-left: 12px">
+          {{ genFileTypeLabel }}
+        </a-tag>
       </div>
       <div class="top-bar-right">
         <a-button @click="showAppDetailModal">
@@ -104,6 +107,10 @@
       <!-- 右侧网页展示区域 -->
 
       <div class="preview-area">
+        <div class="preview-header">
+          <h3 class="preview-title">应用预览</h3>
+        </div>
+        <div class="preview-content">
           <div v-if="streaming" class="preview-placeholder">
             <a-spin :spinning="streaming">
               <template #tip>
@@ -172,6 +179,7 @@
       @update:app="handleAppUpdate"
       @deleted="handleAppDeleted"
     />
+    </div>
   </div>
 </template>
 
@@ -188,7 +196,7 @@ import AppDetailModal from '@/components/AppDetailModal.vue'
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
-import { CodeGenTypeEnum } from '@/utils/constants.ts'
+import { CodeGenTypeEnum, CODE_GEN_TYPE_CONFIG } from '@/utils/constants.ts'
 
 const route = useRoute()
 const router = useRouter()
@@ -246,7 +254,16 @@ const canEdit = computed(() => {
   return appData.value.userId === loginUserStore.loginUser.id
 })
 
-const appId = ref<any>();
+// 生成类型标签
+const genFileTypeLabel = computed(() => {
+  if (!appData.value.genFileType) return ''
+  return (
+    CODE_GEN_TYPE_CONFIG[appData.value.genFileType as CodeGenTypeEnum]?.label ||
+    appData.value.genFileType
+  )
+})
+
+const appId = ref<any>()
 // 消息容器引用（用于自动滚动）
 const messagesContainerRef = ref<HTMLElement>()
 
@@ -753,18 +770,37 @@ onUnmounted(() => {
   // 清理工作（如果需要）
 })
 
-onMounted(() => {
+onMounted(async () => {
+  // 确保页面加载时滚动到顶部，避免自动滚动到底部
+  await nextTick()
+  // 使用多种方法确保滚动到顶部
+  window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+  if (document.documentElement) {
+    document.documentElement.scrollTop = 0
+  }
+  if (document.body) {
+    document.body.scrollTop = 0
+  }
+  // 延迟一下确保滚动生效
+  setTimeout(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+  }, 0)
   fetchAppData()
 })
 </script>
 
 <style scoped>
 #appChatPage {
-  height: calc(100vh - 64px);
+  height: calc(100vh - 64px - 50px);
   display: flex;
   flex-direction: column;
   background: #f5f5f5;
   width: 1600px;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 6px;
+  box-shadow:
+    0 4px 6px rgba(0,0,0,0.1); /* 基础下沉阴影 */
 }
 
 /* 顶部栏 */
@@ -780,6 +816,8 @@ onMounted(() => {
 
 .top-bar-left {
   flex: 1;
+  display: flex;
+  align-items: center;
 }
 
 .app-name {
@@ -1044,6 +1082,28 @@ onMounted(() => {
   max-width: 50%;
   background: #fff;
   display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.preview-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid #e8e8e8;
+  background: #fafafa;
+  flex-shrink: 0;
+}
+
+.preview-title {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.preview-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
@@ -1055,6 +1115,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: 0;
 }
 
 .preview-tip {
@@ -1076,6 +1137,7 @@ onMounted(() => {
   width: 100%;
   height: 100%;
   border: none;
+  min-height: 0;
 }
 
 /* 部署模态框样式 */

@@ -25,6 +25,12 @@
           <span class="info-label">创建时间：</span>
           <span class="info-value">{{ formatCreateTime(appData.createTime) }}</span>
         </div>
+        <div class="info-item" v-if="genFileTypeLabel">
+          <span class="info-label">生成类型：</span>
+          <span class="info-value">
+            <a-tag color="blue">{{ genFileTypeLabel }}</a-tag>
+          </span>
+        </div>
       </div>
 
       <!-- 操作栏（仅本人或管理员可见） -->
@@ -101,6 +107,7 @@ import { formatDateTime } from '@/utils/date.ts'
 import { isAdmin as checkIsAdmin, canEditApp } from '@/utils/helpers.ts'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import { useRouter } from 'vue-router'
+import { CodeGenTypeEnum, CODE_GEN_TYPE_CONFIG } from '@/utils/constants.ts'
 
 const props = defineProps<{
   appData: API.AppVo
@@ -140,6 +147,12 @@ const editFormState = reactive<{
 })
 
 const formatCreateTime = formatDateTime
+
+// 生成类型标签
+const genFileTypeLabel = computed(() => {
+  if (!props.appData.genFileType) return ''
+  return CODE_GEN_TYPE_CONFIG[props.appData.genFileType as CodeGenTypeEnum]?.label || props.appData.genFileType
+})
 
 const handleVisibleChange = (val: boolean) => {
   if (val) {

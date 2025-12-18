@@ -59,8 +59,8 @@ langchain4j:
       max-tokens: 8192
       # 避免重试节省成本
       max-retries: 1
-      response-format: json_object
-      strict-json-schema: true
+#      response-format: json_object
+#      strict-json-schema: true
     streaming-chat-model:
       api-key: ${OPENAI_API_KEY}
       model-name: deepseek-chat

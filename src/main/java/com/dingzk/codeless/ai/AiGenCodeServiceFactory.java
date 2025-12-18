@@ -12,6 +12,7 @@ import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.service.AiServices;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.time.Duration;
@@ -125,5 +126,16 @@ public class AiGenCodeServiceFactory {
 //    @Bean
     public AiGenCodeService aiGenCodeService() {
         return createAiGenCodeService(1L);
+    }
+
+    /**
+     * ai 决策文件类型模型
+     * @return service
+     */
+    @Bean
+    public AiGenFileTypeRoutingService aiGenFileTypeRoutingService() {
+        return AiServices.builder(AiGenFileTypeRoutingService.class)
+                .chatModel(chatModel)
+                .build();
     }
 }
