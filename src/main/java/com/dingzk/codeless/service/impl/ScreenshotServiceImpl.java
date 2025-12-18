@@ -2,6 +2,7 @@ package com.dingzk.codeless.service.impl;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.StrUtil;
+import com.dingzk.codeless.exception.BusinessException;
 import com.dingzk.codeless.exception.ErrorCode;
 import com.dingzk.codeless.exception.ThrowUtils;
 import com.dingzk.codeless.manager.CosManager;
@@ -28,11 +29,12 @@ public class ScreenshotServiceImpl implements ScreenshotService {
 
         // 检查参数
         ThrowUtils.throwIf(StrUtil.isBlank(url), ErrorCode.BAD_PARAM_ERROR, "url不能为空");
-        // 截图，获取压缩后的截图
-        String screenshotSavePath = ScreenshotUtil.doScreenshotAndSave(url);
-        ThrowUtils.throwIf(StrUtil.isBlank(screenshotSavePath), ErrorCode.OPERATION_ERROR, "截图失败, 截图文件路径为空");
-        File screenshotFile = new File(screenshotSavePath);
+        File screenshotFile = null;
         try {
+            // 截图，获取压缩后的截图
+            String screenshotSavePath = ScreenshotUtil.doScreenshot(url).get();
+            ThrowUtils.throwIf(StrUtil.isBlank(screenshotSavePath), ErrorCode.OPERATION_ERROR, "截图失败, 截图文件路径为空");
+            screenshotFile = new File(screenshotSavePath);
             // 上传到 COS
             // 检查截图文件
             ThrowUtils.throwIf(!screenshotFile.exists(), ErrorCode.OPERATION_ERROR, "截图文件不存在");
@@ -40,9 +42,12 @@ public class ScreenshotServiceImpl implements ScreenshotService {
             String cosUrl = cosManager.uploadFile(generateStorageKey(), screenshotFile);
             ThrowUtils.throwIf(StrUtil.isBlank(cosUrl), ErrorCode.OPERATION_ERROR, "截图上传到 COS 失败");
             return cosUrl;
+        } catch (Exception e) {
+            log.error("截图处理过程中出错", e);
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "截图处理过程中出错");
         } finally {
             // 删除本地截图文件
-            if (screenshotFile.exists()) {
+            if (screenshotFile != null && screenshotFile.exists()) {
                 File parentFile = screenshotFile.getParentFile();
                 FileUtil.del(parentFile);
                 log.info("本地截图文件已成功删除");

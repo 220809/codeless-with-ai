@@ -17,6 +17,7 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import java.io.File;
 import java.time.Duration;
 import java.util.UUID;
+import java.util.concurrent.*;
 
 /**
  * 网页截图工具类
@@ -31,14 +32,22 @@ public class ScreenshotUtil {
 
     private static final String SCREENSHOT_DIR = System.getProperty("user.dir") + "/tmp/screenshots";
 
+    private static final ExecutorService executor;
+
     static {
         final int SCREEN_WIDTH = 1600, SCREEN_HEIGHT = 900;
         webDriver = initFirefoxDriver(SCREEN_WIDTH, SCREEN_HEIGHT);
+        executor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
     }
 
     @PreDestroy
     public void destroy() {
         webDriver.quit();
+    }
+
+    public static CompletableFuture<String> doScreenshot(String url) {
+        // 使用线程池保证串行异步执行
+        return CompletableFuture.supplyAsync(() -> doScreenshotAndSave(url), executor);
     }
 
     public static String doScreenshotAndSave(String url) {
