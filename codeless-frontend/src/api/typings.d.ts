@@ -147,6 +147,10 @@ declare namespace API {
     id?: number
   }
 
+  type downloadAppParams = {
+    id: number
+  }
+
   type genCodeFromChatParams = {
     appId: number
     userMessage: string

@@ -11,15 +11,18 @@ import com.dingzk.codeless.exception.BusinessException;
 import com.dingzk.codeless.exception.ErrorCode;
 import com.dingzk.codeless.exception.ThrowUtils;
 import com.dingzk.codeless.model.dto.app.*;
+import com.dingzk.codeless.model.entity.App;
 import com.dingzk.codeless.model.entity.User;
 import com.dingzk.codeless.model.vo.AppVo;
 import com.dingzk.codeless.service.AppService;
+import com.dingzk.codeless.service.ProjectDownloadService;
 import com.dingzk.codeless.service.UserService;
 import com.mybatisflex.core.paginate.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
@@ -27,6 +30,7 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.io.File;
 import java.util.Map;
 
 /**
@@ -45,6 +49,27 @@ public class AppController {
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private ProjectDownloadService projectDownloadService;
+
+    @GetMapping("/download/{id}")
+    @Operation(summary = "下载应用")
+    public BaseResponse<Void> downloadApp(@PathVariable Long id, HttpServletRequest request, HttpServletResponse response) {
+        ThrowUtils.throwIf(id == null || id <= 0, ErrorCode.BAD_PARAM_ERROR, "非法的appId");
+        User loginUser = userService.getLoginUser(request);
+        // 检查用户权限
+        App app = appService.checkAppPermission(id, loginUser, true);
+        // 获取下载项目目录
+        String genFileType = app.getGenFileType();
+        String projectRootPath = AppConstant.CODE_FILE_SAVE_BASE_PATH + File.separator + genFileType + "_" + id;
+        File projectRoot = new File(projectRootPath);
+        ThrowUtils.throwIf(!projectRoot.exists(), ErrorCode.NOT_FOUND_ERROR, "项目不存在");
+        String projectFileName = "project_" + id;
+        projectDownloadService.downloadProjectAsZip(projectRootPath, projectFileName, response);
+
+        return RespUtils.success(null);
+    }
 
     @PostMapping("/deploy")
     @Operation(summary = "部署应用")

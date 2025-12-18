@@ -233,7 +233,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         return true;
     }
 
-    private App checkAppPermission(Long appId, User loginUser, boolean modify) {
+    @Override
+    public App checkAppPermission(Long appId, User loginUser, boolean owner) {
         ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_FOUND_ERROR, "用户不存在");
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.BAD_PARAM_ERROR, "应用ID不合法");
 
@@ -242,7 +243,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         ThrowUtils.throwIf(oldApp == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
 
         // 2. 校验权限（只能更新自己的应用）
-        ThrowUtils.throwIf(modify && !loginUser.getId().equals(oldApp.getUserId()), ErrorCode.NO_AUTH_ERROR);
+        ThrowUtils.throwIf(owner && !loginUser.getId().equals(oldApp.getUserId()), ErrorCode.NO_AUTH_ERROR);
         return oldApp;
     }
 

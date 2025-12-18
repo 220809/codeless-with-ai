@@ -9,6 +9,18 @@
         <a-button @click="showAppDetailModal">
           应用详情
         </a-button>
+        <a-tooltip title="下载项目" placement="bottom">
+          <a-button
+            :loading="downloading"
+            :disabled="streaming && !previewReady"
+            @click="handleDownload"
+            style="margin-right: 12px"
+          >
+            <template #icon>
+              <DownloadOutlined />
+            </template>
+          </a-button>
+        </a-tooltip>
         <a-button
           type="primary"
           :loading="deploying"
@@ -167,6 +179,7 @@
 import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
+import { DownloadOutlined } from '@ant-design/icons-vue'
 import { getAppById, deployApp } from '@/api/app.ts'
 import { pageListMyChatHistory } from '@/api/chatHistory.ts'
 import request from '@/request.ts'
@@ -590,6 +603,9 @@ const deploying = ref(false)
 const deployModalVisible = ref(false)
 const deployUrl = ref('')
 
+// 下载应用
+const downloading = ref(false)
+
 // 应用详情模态框
 const appDetailModalVisible = ref(false)
 const deleting = ref(false)
@@ -615,6 +631,61 @@ const handleDeploy = async () => {
     message.error('部署失败: ' + (error.message || '网络错误'))
   } finally {
     deploying.value = false
+  }
+}
+
+// 下载应用
+const handleDownload = async () => {
+  if (!appData.value.id) {
+    message.error('应用ID不存在')
+    return
+  }
+
+  downloading.value = true
+  try {
+    // 使用 axios 直接请求二进制数据
+    const response = await request({
+      url: `/app/download/${appData.value.id}`,
+      method: 'GET',
+      responseType: 'blob',
+    })
+
+    // 从响应头获取文件名（axios 可能将响应头键名转换为小写）
+    const contentDisposition = response.headers['content-disposition'] || response.headers['Content-Disposition']
+    let fileName = `${'project_' + (appData.value.id ?? 'unknown')}.zip`
+    if (contentDisposition) {
+      // 匹配 filename="xxx" 或 filename=xxx 格式
+      const fileNameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/i)
+      if (fileNameMatch && fileNameMatch[1]) {
+        fileName = fileNameMatch[1].replace(/['"]/g, '')
+        // 处理可能的编码问题（如 filename*=UTF-8''xxx 格式）
+        if (fileName.startsWith("UTF-8''") || fileName.startsWith("utf-8''")) {
+          fileName = decodeURIComponent(fileName.replace(/^UTF-8''/i, ''))
+        } else {
+          try {
+            fileName = decodeURIComponent(fileName)
+          } catch (e) {
+            // 如果解码失败，使用原始值
+          }
+        }
+      }
+    }
+
+    // 创建 blob URL 并触发下载
+    const blob = new Blob([response.data], { type: 'application/zip' })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = fileName
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  } catch (error: any) {
+    console.error('下载失败:', error)
+    message.error('下载失败: ' + (error.message || '网络错误'))
+  } finally {
+    downloading.value = false
   }
 }
 

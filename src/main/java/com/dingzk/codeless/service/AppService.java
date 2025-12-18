@@ -53,6 +53,15 @@ public interface AppService extends IService<App> {
     boolean updateApp(AppUpdateRequest appUpdateRequest, User loginUser);
 
     /**
+     * 检查应用权限
+     * @param appId 应用id
+     * @param loginUser 登录用户
+     * @param owner 是否需要用户是应用拥有者
+     * @return 应用
+     */
+    App checkAppPermission(Long appId, User loginUser, boolean owner);
+
+    /**
      * 删除应用
      * @param id 应用id
      * @param loginUser 登录用户

@@ -110,6 +110,20 @@ export async function deployApp(body: API.AppDeployRequest, options?: { [key: st
   })
 }
 
+/** 下载应用 GET /app/download/${param0} */
+export async function downloadApp(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.downloadAppParams,
+  options?: { [key: string]: any }
+) {
+  const { id: param0, ...queryParams } = params
+  return request<API.BaseResponseVoid>(`/app/download/${param0}`, {
+    method: 'GET',
+    params: { ...queryParams },
+    ...(options || {}),
+  })
+}
+
 /** 根据 id 查看应用详情 GET /app/get */
 export async function getAppById(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
