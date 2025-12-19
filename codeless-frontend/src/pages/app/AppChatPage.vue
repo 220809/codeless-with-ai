@@ -81,10 +81,48 @@
 
         <!-- 用户消息输入框 -->
         <div class="input-area">
+          <!-- 选中元素提示 -->
+          <!-- 选中元素信息展示 -->
+          <a-alert
+            v-if="selectedElementInfo"
+            class="selected-element-alert"
+            type="info"
+            closable
+            @close="clearSelectedElement"
+          >
+            <template #message>
+              <div class="selected-element-info">
+                <div class="element-header">
+                <span class="element-tag">
+                  选中元素：{{ selectedElementInfo.tagName.toLowerCase() }}
+                </span>
+                  <span v-if="selectedElementInfo.id" class="element-id">
+                  #{{ selectedElementInfo.id }}
+                </span>
+                  <span v-if="selectedElementInfo.className" class="element-class">
+                  .{{ selectedElementInfo.className.split(' ').join('.') }}
+                </span>
+                </div>
+                <div class="element-details">
+                  <div v-if="selectedElementInfo.textContent" class="element-item">
+                    内容: {{ selectedElementInfo.textContent.substring(0, 50) }}
+                    {{ selectedElementInfo.textContent.length > 50 ? '...' : '' }}
+                  </div>
+                  <div v-if="selectedElementInfo.pagePath" class="element-item">
+                    页面路径: {{ selectedElementInfo.pagePath }}
+                  </div>
+                  <div class="element-item">
+                    选择器:
+                    <code class="element-selector-code">{{ selectedElementInfo.selector }}</code>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </a-alert>
           <a-tooltip :title="!canEdit ? '无法在别人的作品下对话哦~' : ''" placement="top">
             <a-textarea
               v-model:value="userInput"
-              :placeholder="canEdit ? '输入你的消息...' : '无法在别人的作品下对话哦~'"
+              :placeholder="getInputPlaceholder()"
               :auto-size="{ minRows: 2, maxRows: 6 }"
               :disabled="streaming || !appData.id || !canEdit"
               @keydown.enter.ctrl="handleSendMessage"
@@ -109,6 +147,21 @@
       <div class="preview-area">
         <div class="preview-header">
           <h3 class="preview-title">应用预览</h3>
+          <div class="preview-actions">
+            <a-button
+              v-if="canEdit && previewUrl"
+              type="link"
+              :danger="isEditMode"
+              @click="toggleEditMode"
+              :class="{ 'edit-mode-active': isEditMode }"
+              style="padding: 0; height: auto; margin-right: 12px"
+            >
+              <template #icon>
+                <EditOutlined />
+              </template>
+              {{ isEditMode ? '退出编辑' : '编辑模式' }}
+            </a-button>
+          </div>
         </div>
         <div class="preview-content">
           <div v-if="streaming" class="preview-placeholder">
@@ -123,12 +176,14 @@
               <p>尝试与AI对话生成应用</p>
             </div>
           </div>
-          <iframe
-            v-else
-            :src="previewUrl"
-            class="preview-iframe"
-            frameborder="0"
-          />
+          <div v-else class="preview-iframe-wrapper" :class="{ 'edit-mode-active': isEditMode }">
+            <iframe
+              :src="previewUrl"
+              class="preview-iframe"
+              @load="onIframeLoad"
+              frameborder="0"
+            />
+          </div>
 
       </div>
     </div>
@@ -187,7 +242,7 @@
 import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { DownloadOutlined } from '@ant-design/icons-vue'
+import { DownloadOutlined, EditOutlined } from '@ant-design/icons-vue'
 import { getAppById, deployApp } from '@/api/app.ts'
 import { pageListMyChatHistory } from '@/api/chatHistory.ts'
 import request from '@/request.ts'
@@ -197,6 +252,7 @@ import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
 import { CodeGenTypeEnum, CODE_GEN_TYPE_CONFIG } from '@/utils/constants.ts'
+import { type ElementInfo, VisualEditor } from '@/utils/visualEditor.ts'
 
 const route = useRoute()
 const router = useRouter()
@@ -228,6 +284,15 @@ const previewUrl = ref('')
 const canDeploy = computed(() => previewReady.value && appData.value.genFileType)
 
 const loginUserStore = useLoginUserStore()
+
+// 可视化编辑相关
+const isEditMode = ref(false)
+const selectedElementInfo = ref<ElementInfo | null>(null)
+const visualEditor = new VisualEditor({
+  onElementSelected: (elementInfo: ElementInfo) => {
+    selectedElementInfo.value = elementInfo
+  },
+})
 
 // 初始化 Markdown 解析器
 const md = new MarkdownIt({
@@ -370,7 +435,7 @@ const checkAndShowPreview = async () => {
   // 尝试加载预览
   const codeGenType = appData.value.genFileType
   const appIdStr = String(appData.value.id) // 确保是字符串类型
-  let testUrl = `http://localhost:8888/api/app/preview/${codeGenType}_${appIdStr}/`
+  let testUrl = `/api/app/preview/${codeGenType}_${appIdStr}/`
 
   // 检查预览是否可用
   try {
@@ -441,8 +506,32 @@ const fetchAppData = async () => {
 // 发送消息
 const handleSendMessage = async () => {
   if (!userInput.value.trim() || !appData.value.id) return
-  await sendMessage(userInput.value.trim())
+
+  // 构建完整的提示词（包含选中元素信息）
+  let fullPrompt = userInput.value.trim()
+  if (selectedElementInfo.value) {
+    let elementContext = `\n\n选中元素信息：`
+    if (selectedElementInfo.value.pagePath) {
+      elementContext += `\n- 页面路径: ${selectedElementInfo.value.pagePath}`
+    }
+    elementContext += `\n- 标签: ${selectedElementInfo.value.tagName.toLowerCase()}\n- 选择器: ${selectedElementInfo.value.selector}`
+    if (selectedElementInfo.value.textContent) {
+      elementContext += `\n- 当前内容: ${selectedElementInfo.value.textContent.substring(0, 100)}`
+    }
+    fullPrompt += elementContext
+  }
+
+  await sendMessage(fullPrompt)
   userInput.value = ''
+
+  // 发送消息后，清除选中元素并退出编辑模式
+  if (selectedElementInfo.value) {
+    clearSelectedElement()
+    if (isEditMode.value) {
+      // 退出编辑模式，对话时预览内容正在生成，直接通过 visualEditor 关闭编辑模式
+      isEditMode.value = visualEditor.toggleEditMode()
+    }
+  }
 }
 
 const sendInitialMessage = async (prompt: string) => {
@@ -765,6 +854,44 @@ const scrollToBottom = async () => {
   }
 }
 
+// iframe加载完成
+const onIframeLoad = () => {
+  previewReady.value = true
+  const iframe = document.querySelector('.preview-iframe') as HTMLIFrameElement
+  if (iframe) {
+    visualEditor.init(iframe)
+    visualEditor.onIframeLoad()
+  }
+}
+
+// 可视化编辑相关函数
+const toggleEditMode = () => {
+  // 检查 iframe 是否已经加载
+  const iframe = document.querySelector('.preview-iframe') as HTMLIFrameElement
+  if (!iframe) {
+    message.warning('请等待页面加载完成')
+    return
+  }
+  // 确保 visualEditor 已初始化
+  if (!previewReady.value) {
+    message.warning('请等待页面加载完成')
+    return
+  }
+  isEditMode.value = visualEditor.toggleEditMode()
+}
+
+const clearSelectedElement = () => {
+  selectedElementInfo.value = null
+  visualEditor.clearSelection()
+}
+
+const getInputPlaceholder = () => {
+  if (selectedElementInfo.value) {
+    return `正在编辑 ${selectedElementInfo.value.tagName.toLowerCase()} 元素，描述您想要的修改...`
+  }
+  return '请描述你想生成的网站，越详细效果越好哦'
+}
+
 // 清理
 onUnmounted(() => {
   // 清理工作（如果需要）
@@ -786,6 +913,11 @@ onMounted(async () => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
   }, 0)
   fetchAppData()
+
+  // 监听 iframe 消息
+  window.addEventListener('message', (event) => {
+    visualEditor.handleIframeMessage(event)
+  })
 })
 </script>
 
@@ -1069,6 +1201,10 @@ onMounted(async () => {
   background: #fafafa;
 }
 
+.selected-element-alert {
+  margin-bottom: 12px;
+}
+
 .input-actions {
   display: flex;
   justify-content: flex-end;
@@ -1090,7 +1226,12 @@ onMounted(async () => {
   padding: 16px 24px;
   border-bottom: 1px solid #e8e8e8;
   background: #fafafa;
-  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+}
+
+.preview-actions {
+  display: flex;
 }
 
 .preview-title {
@@ -1131,6 +1272,28 @@ onMounted(async () => {
 .load-more-container {
   text-align: center;
   padding: 16px 0;
+}
+
+.preview-iframe-wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  min-height: 0;
+}
+
+.preview-iframe-wrapper.edit-mode-active {
+  border: 2px solid #1890ff;
+  border-radius: 4px;
+}
+
+.edit-mode-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  padding: 8px;
+  background: transparent;
 }
 
 .preview-iframe {

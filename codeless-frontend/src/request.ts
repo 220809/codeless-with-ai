@@ -3,7 +3,7 @@ import { message } from 'ant-design-vue'
 
 // 创建 Axios 实例
 const axiosInstance = axios.create({
-  baseURL: 'http://localhost:8888/api',
+  baseURL: '/api',
   timeout: 60000,
   withCredentials: true,
 })
