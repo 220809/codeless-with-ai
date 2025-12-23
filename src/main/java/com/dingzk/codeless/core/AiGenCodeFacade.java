@@ -91,6 +91,10 @@ public class AiGenCodeFacade {
                 .doOnNext(partialAiMessage::append)
                 .doOnComplete(() -> {
                     try {
+                        if (GenFileTypeEnum.VUE_PROJECT == genFileType) {
+                            // vue_project 类型项目文件使用工具保存，保存器这里不再处理
+                            return;
+                        }
                         String completedAiMessage = partialAiMessage.toString();
                         // 解析ai生成内容
                         Object codeResult = CodeParserExecutor.execute(completedAiMessage, genFileType);
