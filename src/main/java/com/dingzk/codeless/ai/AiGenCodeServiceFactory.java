@@ -1,6 +1,6 @@
 package com.dingzk.codeless.ai;
 
-import com.dingzk.codeless.ai.tools.FileWriteTool;
+import com.dingzk.codeless.ai.tools.*;
 import com.dingzk.codeless.service.ChatHistoryService;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -41,6 +41,9 @@ public class AiGenCodeServiceFactory {
 
     @Resource
     private ChatHistoryService chatHistoryService;
+
+    @Resource
+    private ToolManager toolManager;
 
     private static final int MAX_MESSAGE_COUNT = 40;
 
@@ -104,7 +107,7 @@ public class AiGenCodeServiceFactory {
                     .streamingChatModel(streamingReasonerChatModel)
                     .chatMemoryProvider(memoryId -> chatMemory)
                     // 定义工具
-                    .tools(new FileWriteTool())
+                    .tools(toolManager.getTools())
                     // 模型幻觉处理（调用不存在的工具时）
                     .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
                             toolExecutionRequest, String.format("Error: tool[%s] not found", toolExecutionRequest.name())

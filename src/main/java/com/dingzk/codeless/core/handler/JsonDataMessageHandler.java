@@ -1,9 +1,10 @@
 package com.dingzk.codeless.core.handler;
 
-import cn.hutool.core.io.FileUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.dingzk.codeless.ai.model.message.*;
+import com.dingzk.codeless.ai.tools.BaseTool;
+import com.dingzk.codeless.ai.tools.ToolManager;
 import com.dingzk.codeless.constant.AppConstant;
 import com.dingzk.codeless.core.builder.VueProjectBuilder;
 import com.dingzk.codeless.model.entity.User;
@@ -30,6 +31,9 @@ public class JsonDataMessageHandler {
     @Resource
     private VueProjectBuilder vueProjectBuilder;
 
+    @Resource
+    private ToolManager toolManager;
+
     /**
      * 消息处理
      * @param aiMessageFlux AI消息流
@@ -53,24 +57,16 @@ public class JsonDataMessageHandler {
                 }
                 case TOOL_REQUEST -> {
                     ToolRequestMessage toolRequestMessage = JSONUtil.toBean(chunk, ToolRequestMessage.class);
-                    String requestMessage = String.format("\n\n[调用工具] %s\n\n", toolRequestMessage.getName());
+                    BaseTool tool = toolManager.getTool(toolRequestMessage.getName());
+                    String requestMessage = tool.requestResult();
                     aiMessageBuilder.append(requestMessage);
                     return requestMessage;
                 }
                 case TOOL_EXECUTION -> {
                     ToolExecutionMessage toolExecutionMessage = JSONUtil.toBean(chunk, ToolExecutionMessage.class);
                     JSONObject toolArgumentObj = JSONUtil.parseObj(toolExecutionMessage.getArguments());
-                    String relativePath = toolArgumentObj.getStr("relativePath");
-                    String fileSuffix = FileUtil.getSuffix(relativePath);
-                    String content = toolArgumentObj.getStr("content");
-                    String executionMessage = String.format(
-                            """
-                            [工具执行结果] %s: %s
-                            ```%s
-                            %s
-                            ```
-                            """
-                    , toolExecutionMessage.getName(), relativePath, fileSuffix, content);
+                    BaseTool tool = toolManager.getTool(toolExecutionMessage.getName());
+                    String executionMessage = tool.executionResult(toolArgumentObj);
                     String output = String.format("\n\n%s\n\n", executionMessage);
                     aiMessageBuilder.append(output);
                     return output;

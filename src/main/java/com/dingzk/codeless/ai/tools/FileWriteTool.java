@@ -1,10 +1,13 @@
 package com.dingzk.codeless.ai.tools;
 
+import cn.hutool.core.io.FileUtil;
+import cn.hutool.json.JSONObject;
 import com.dingzk.codeless.constant.AppConstant;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolMemoryId;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -19,7 +22,8 @@ import java.nio.file.StandardOpenOption;
  * @date 2025/12/13 15:24
  */
 @Slf4j
-public class FileWriteTool {
+@Component
+public class FileWriteTool extends BaseTool {
     @Tool("write content to a file at the specified relative path")
     public String writeFile(@P("the relative path of the file to write") String relativePath,
                             @P("the file content to write") String content,
@@ -49,5 +53,31 @@ public class FileWriteTool {
             log.error(errorMessage, e);
             return errorMessage;
         }
+    }
+
+    @Override
+    public String getName() {
+        return "writeFile";
+    }
+
+    @Override
+    public String getDisplayName() {
+        return "写入文件";
+    }
+
+    @Override
+    public String executionResult(JSONObject args) {
+        String relativePath = args.getStr("relativePath");
+        String fileSuffix = FileUtil.getSuffix(relativePath);
+        String content = args.getStr("content");
+        String executionMessage = String.format(
+                """
+                [执行结果] %s: %s
+                ```%s
+                %s
+                ```
+                """
+                , getDisplayName(), relativePath, fileSuffix, content);
+        return String.format("\n\n%s\n\n", executionMessage);
     }
 }

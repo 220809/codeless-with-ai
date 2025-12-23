@@ -5,6 +5,7 @@ import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolMemoryId;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -18,7 +19,8 @@ import java.nio.file.Paths;
  * @date 2025/12/13
  */
 @Slf4j
-public class FileDeleteTool {
+@Component
+public class FileDeleteTool extends BaseTool {
     
     /**
      * 删除文件
@@ -68,6 +70,16 @@ public class FileDeleteTool {
             log.error(errorMessage, e);
             return errorMessage;
         }
+    }
+
+    @Override
+    public String getName() {
+        return "deleteFile";
+    }
+
+    @Override
+    public String getDisplayName() {
+        return "删除文件";
     }
 }
 

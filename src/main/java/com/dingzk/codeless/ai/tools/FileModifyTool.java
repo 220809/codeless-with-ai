@@ -1,10 +1,13 @@
 package com.dingzk.codeless.ai.tools;
 
+import cn.hutool.core.io.FileUtil;
+import cn.hutool.json.JSONObject;
 import com.dingzk.codeless.constant.AppConstant;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolMemoryId;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -20,7 +23,8 @@ import java.nio.file.StandardOpenOption;
  * @date 2025/12/13
  */
 @Slf4j
-public class FileModifyTool {
+@Component
+public class FileModifyTool extends BaseTool {
     
     /**
      * 修改文件内容，用新内容替换旧内容
@@ -94,6 +98,37 @@ public class FileModifyTool {
             log.error(errorMessage, e);
             return errorMessage;
         }
+    }
+
+    @Override
+    public String getName() {
+        return "modifyFile";
+    }
+
+    @Override
+    public String getDisplayName() {
+        return "修改文件";
+    }
+
+    @Override
+    public String executionResult(JSONObject args) {
+        String relativePath = args.getStr("relativePath");
+        String fileSuffix = FileUtil.getSuffix(relativePath);
+        String oldContent = args.getStr("oldContent");
+        String newContent = args.getStr("newContent");
+        String executionMessage = String.format(
+                """
+                [执行结果] %s: %s
+                ```%s
+                %s
+                ```
+                修改为:
+                ```%s
+                %s
+                ```
+                """
+                , getDisplayName(), relativePath, fileSuffix, oldContent, fileSuffix, newContent);
+        return String.format("\n\n%s\n\n", executionMessage);
     }
 }
 

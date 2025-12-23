@@ -5,6 +5,7 @@ import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolMemoryId;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -21,7 +22,8 @@ import java.util.stream.Stream;
  * @date 2025/12/13
  */
 @Slf4j
-public class DirectoryReadTool {
+@Component
+public class DirectoryReadTool extends BaseTool {
     
     /**
      * 读取目录结构
@@ -127,5 +129,15 @@ public class DirectoryReadTool {
                 tree.append(newIndent).append(fileName).append("\n");
             }
         }
+    }
+
+    @Override
+    public String getName() {
+        return "readDirectory";
+    }
+
+    @Override
+    public String getDisplayName() {
+        return "读取目录";
     }
 }

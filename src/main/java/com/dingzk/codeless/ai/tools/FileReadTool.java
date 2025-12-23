@@ -5,6 +5,7 @@ import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolMemoryId;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -19,7 +20,8 @@ import java.nio.file.Paths;
  * @date 2025/12/13
  */
 @Slf4j
-public class FileReadTool {
+@Component
+public class FileReadTool extends BaseTool {
     
     /**
      * 读取文件内容
@@ -70,6 +72,16 @@ public class FileReadTool {
             log.error(errorMessage, e);
             return errorMessage;
         }
+    }
+
+    @Override
+    public String getName() {
+        return "readFile";
+    }
+
+    @Override
+    public String getDisplayName() {
+        return "读取文件";
     }
 }
 
