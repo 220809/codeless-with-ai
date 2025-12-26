@@ -2,6 +2,7 @@ package com.dingzk.codeless.ai;
 
 import com.dingzk.codeless.ai.tools.*;
 import com.dingzk.codeless.service.ChatHistoryService;
+import com.dingzk.codeless.utils.SpringContextUtil;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
@@ -28,19 +29,16 @@ import java.time.Duration;
 public class AiGenCodeServiceFactory {
 
     @Resource
-    private ChatModel chatModel;
-
-    @Resource
-    private StreamingChatModel openAiStreamingChatModel;
-
-    @Resource
-    private StreamingChatModel streamingReasonerChatModel;
+    private ChatModel openAiChatModel;
 
     @Resource
     private RedisChatMemoryStore redisChatMemoryStore;
 
     @Resource
     private ChatHistoryService chatHistoryService;
+
+    @Resource
+    private SpringContextUtil springContextUtil;
 
     @Resource
     private ToolManager toolManager;
@@ -60,15 +58,6 @@ public class AiGenCodeServiceFactory {
             .build();
 
     /**
-     * 获取 AiGenCodeService（非推理模型用）
-     * @param appId appId
-     * @return AiGenCodeService
-     */
-    public AiGenCodeService getAiGenCodeService(long appId) {
-        return getAiGenCodeService(appId, false);
-    }
-
-    /**
      * 获取 AiGenCodeService（通用）
      * @param appId appId
      * @return AiGenCodeService
@@ -77,15 +66,6 @@ public class AiGenCodeServiceFactory {
         return aiServiceCache.get(appId, id -> createAiGenCodeService(id, useReasonerModel));
     }
 
-    /**
-     * 创建 AiGenCodeService（非推理模型用）
-     * @param appId appId
-     * @return AiGenCodeService
-     */
-    private AiGenCodeService createAiGenCodeService(long appId) {
-        // single_html、multi_file 模式使用非推理模型
-        return createAiGenCodeService(appId, false);
-    }
     /**
      * 创建 AiGenCodeService（通用）
      * @param appId appId
@@ -101,9 +81,12 @@ public class AiGenCodeServiceFactory {
         chatHistoryService.loadChatHistoryToChatMemory(appId, chatMemory, MAX_MESSAGE_COUNT);
 
         if (useReasonerModel) {
+            // 获取 prototype bean
+            StreamingChatModel streamingReasonerChatModel =
+                    springContextUtil.getBean("protoStreamingReasonerChatModel", StreamingChatModel.class);
             // 使用推理模型，并使用工具调用
             return AiServices.builder(AiGenCodeService.class)
-                    .chatModel(chatModel)
+                    .chatModel(openAiChatModel)
                     .streamingChatModel(streamingReasonerChatModel)
                     .chatMemoryProvider(memoryId -> chatMemory)
                     // 定义工具
@@ -113,22 +96,27 @@ public class AiGenCodeServiceFactory {
                             toolExecutionRequest, String.format("Error: tool[%s] not found", toolExecutionRequest.name())
                     )).build();
         }
+
+        // 获取 prototype bean
+        StreamingChatModel streamingChatModel =
+                springContextUtil.getBean("protoStreamingChatModel", StreamingChatModel.class);
         // 使用非推理模型
         return AiServices.builder(AiGenCodeService.class)
-                .chatModel(chatModel)
-                .streamingChatModel(openAiStreamingChatModel)
+                .chatModel(openAiChatModel)
+                .streamingChatModel(streamingChatModel)
                 .chatMemory(chatMemory)
                 .build();
     }
 
 
     /**
-     * 测试调用 ai 使用，需要使用时将 @Bean 取消注释
+     * 测试调用 ai 使用，使用位置在 com.dingzk.codeless.ai.AiGenCodeServiceTest
+     * 需要用到时取消 @Bean 注释
      * @return 用于测试的 aiService
      */
 //    @Bean
     public AiGenCodeService aiGenCodeService() {
-        return createAiGenCodeService(1L);
+        return createAiGenCodeService(1L, false);
     }
 
     /**
@@ -138,7 +126,7 @@ public class AiGenCodeServiceFactory {
     @Bean
     public AiGenFileTypeRoutingService aiGenFileTypeRoutingService() {
         return AiServices.builder(AiGenFileTypeRoutingService.class)
-                .chatModel(chatModel)
+                .chatModel(openAiChatModel)
                 .build();
     }
 }

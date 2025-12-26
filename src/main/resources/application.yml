@@ -70,6 +70,14 @@ langchain4j:
       max-tokens: 8192
       # 避免重试节省成本
       max-retries: 1
+    streaming-reasoner-chat-model:
+      api-key: ${OPENAI_API_KEY}
+      model-name: deepseek-chat  # 开发环境暂用普通模型代替
+      log-requests: true
+      log-responses: true
+      base-url: https://api.deepseek.com
+      max-tokens: 8192
+      temperature: 0.15
 
 # 腾讯云对象存储配置
 cos:

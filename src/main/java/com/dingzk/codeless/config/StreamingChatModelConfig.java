@@ -10,15 +10,15 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
 /**
- * 流式推理模型配置类
+ * 流式模型配置类
  *
  * @author ding
- * @date 2025/12/13 15:09
+ * @date 2025/12/26 15:57
  */
 @Configuration
-@ConfigurationProperties(prefix = "langchain4j.openai.streaming-reasoner-chat-model")
+@ConfigurationProperties(prefix = "langchain4j.openai.streaming-chat-model")
 @Data
-public class StreamingReasonerChatModelConfig {
+public class StreamingChatModelConfig {
     /**
      * OpenAI API key
      */
@@ -43,14 +43,10 @@ public class StreamingReasonerChatModelConfig {
      * 是否打印响应
      */
     private boolean logResponses;
-    /**
-     * temperature
-     */
-    private double temperature;
 
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    public StreamingChatModel protoStreamingReasonerChatModel() {
+    public StreamingChatModel protoStreamingChatModel() {
         return OpenAiStreamingChatModel.builder()
                 .apiKey(apiKey)
                 .modelName(modelName)
@@ -58,7 +54,6 @@ public class StreamingReasonerChatModelConfig {
                 .maxTokens(maxTokens)
                 .logRequests(logRequests)
                 .logResponses(logResponses)
-                .temperature(temperature)
                 .build();
     }
 }
