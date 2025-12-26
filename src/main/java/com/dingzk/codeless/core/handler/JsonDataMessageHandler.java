@@ -81,9 +81,6 @@ public class JsonDataMessageHandler {
             if (StringUtils.isNotBlank(aiMessage)) {
                 chatHistoryService.addChatHistory(appId, aiMessage, ChatMessageTypeEnum.AI.getType(), loginUser);
             }
-            // 异步构建 Vue 项目
-            String projectDir = AppConstant.CODE_FILE_SAVE_BASE_PATH + File.separator + "vue_project_" + appId;
-            vueProjectBuilder.buildProjectAsync(projectDir);
         }).doOnError(error -> {
             // 错误时保存异常消息
             String errorMessage = StringUtils.join("生成代码失败: ", error.getMessage());

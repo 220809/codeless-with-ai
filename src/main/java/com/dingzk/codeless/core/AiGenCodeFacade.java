@@ -6,6 +6,8 @@ import com.dingzk.codeless.ai.AiGenCodeServiceFactory;
 import com.dingzk.codeless.ai.model.message.AiResponseMessage;
 import com.dingzk.codeless.ai.model.message.ToolExecutionMessage;
 import com.dingzk.codeless.ai.model.message.ToolRequestMessage;
+import com.dingzk.codeless.constant.AppConstant;
+import com.dingzk.codeless.core.builder.VueProjectBuilder;
 import com.dingzk.codeless.core.parser.CodeParserExecutor;
 import com.dingzk.codeless.core.saver.CodeSaverExecutor;
 import com.dingzk.codeless.exception.BusinessException;
@@ -38,6 +40,9 @@ public class AiGenCodeFacade {
 
     @Resource
     private AiGenCodeServiceFactory aiGenCodeServiceFactory;
+
+    @Resource
+    private VueProjectBuilder vueProjectBuilder;
 
     /**
      * 统一调用: 生成代码并保存到本地
@@ -73,7 +78,7 @@ public class AiGenCodeFacade {
             case SINGLE_HTML -> streamingResult = genCodeService.streamingGenSingleHtmlCode(userMessage);
             case MULTI_FILE -> streamingResult = genCodeService.streamingGenMultiFileCode(userMessage);
             case VUE_PROJECT -> streamingResult =
-                    processTokenStreamingResult(genCodeService.streamingGenVueProjectCode(appId, userMessage));
+                    processTokenStreamingResult(genCodeService.streamingGenVueProjectCode(appId, userMessage), appId);
             default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, "代码保存类型错误");
         }
         return streamingGenerateAndSaveCode(streamingResult, fileType, appId);
@@ -112,7 +117,7 @@ public class AiGenCodeFacade {
      * @param tokenStream tokenStream
      * @return flux
      */
-    private Flux<String> processTokenStreamingResult(TokenStream tokenStream) {
+    private Flux<String> processTokenStreamingResult(TokenStream tokenStream, long appId) {
         return Flux.create(sink -> {
             tokenStream.onPartialResponse(partialResponse -> {
                 // 包装 ai 流式消息
@@ -127,6 +132,9 @@ public class AiGenCodeFacade {
                 ToolExecutionMessage toolExecutionMessage = new ToolExecutionMessage(toolExecution);
                 sink.next(JSONUtil.toJsonStr(toolExecutionMessage));
             }).onCompleteResponse(completeResponse -> {
+                // 构建 Vue 项目
+                String projectDir = AppConstant.CODE_FILE_SAVE_BASE_PATH + File.separator + "vue_project_" + appId;
+                vueProjectBuilder.buildProject(projectDir);
                 // 流结束
                 sink.complete();
             }).onError(error -> {
