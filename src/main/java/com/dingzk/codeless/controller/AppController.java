@@ -24,6 +24,7 @@ import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
@@ -164,6 +165,10 @@ public class AppController {
 
     @PostMapping("/list/page/featured")
     @Operation(summary = "分页查询精选的应用列表")
+    @Cacheable(value = "featured_app_page"  // 缓存名称
+            , key = "T(com.dingzk.codeless.utils.CacheKeyUtils).generateCacheKey(#appSearchRequest)" // 缓存key
+            , condition = "#appSearchRequest != null && #appSearchRequest.pageNum <= 10"  // 缓存条件
+    )
     public BaseResponse<Page<AppVo>> pageListFeaturedApps(@RequestBody AppSearchRequest appSearchRequest, HttpServletRequest request) {
         if (appSearchRequest == null) {
             throw new BusinessException(ErrorCode.BAD_PARAM_ERROR);
