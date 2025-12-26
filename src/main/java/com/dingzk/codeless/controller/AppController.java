@@ -14,6 +14,8 @@ import com.dingzk.codeless.model.dto.app.*;
 import com.dingzk.codeless.model.entity.App;
 import com.dingzk.codeless.model.entity.User;
 import com.dingzk.codeless.model.vo.AppVo;
+import com.dingzk.codeless.ratelimit.annotation.RateLimit;
+import com.dingzk.codeless.ratelimit.enums.RateLimitType;
 import com.dingzk.codeless.service.AppService;
 import com.dingzk.codeless.service.ProjectDownloadService;
 import com.dingzk.codeless.service.UserService;
@@ -84,6 +86,7 @@ public class AppController {
 
     @GetMapping(value = "/chat/codegen", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "对话生成代码")
+    @RateLimit(limitType = RateLimitType.USER, rate = 5)
     public Flux<ServerSentEvent<String>> genCodeFromChat(@RequestParam Long appId, @RequestParam String userMessage, HttpServletRequest request) {
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.BAD_PARAM_ERROR, "非法的appId");
         ThrowUtils.throwIf(StringUtils.isBlank(userMessage), ErrorCode.BAD_PARAM_ERROR, "用户提示词不能为空");
