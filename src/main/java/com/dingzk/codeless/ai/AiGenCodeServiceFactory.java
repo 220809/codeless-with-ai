@@ -1,6 +1,7 @@
 package com.dingzk.codeless.ai;
 
 import com.dingzk.codeless.ai.tools.*;
+import com.dingzk.codeless.guardrail.PromptSafetyInputGuardrail;
 import com.dingzk.codeless.service.ChatHistoryService;
 import com.dingzk.codeless.utils.SpringContextUtil;
 import com.github.benmanes.caffeine.cache.Cache;
@@ -94,7 +95,9 @@ public class AiGenCodeServiceFactory {
                     // 模型幻觉处理（调用不存在的工具时）
                     .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
                             toolExecutionRequest, String.format("Error: tool[%s] not found", toolExecutionRequest.name())
-                    )).build();
+                    ))
+                    .inputGuardrails(new PromptSafetyInputGuardrail())  // 提示词安全护轨
+                    .build();
         }
 
         // 获取 prototype bean
@@ -105,6 +108,7 @@ public class AiGenCodeServiceFactory {
                 .chatModel(openAiChatModel)
                 .streamingChatModel(streamingChatModel)
                 .chatMemory(chatMemory)
+                .inputGuardrails(new PromptSafetyInputGuardrail())  // 提示词安全护轨
                 .build();
     }
 
