@@ -280,8 +280,20 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     }
 
     @Override
-    public Page<AppVo> pageListApps(AppSearchRequest appSearchRequest, User loginUser) {
+    public Page<AppVo> pageListMyApps(AppSearchRequest appSearchRequest, User loginUser) {
         ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR);
+        // 设置为查询自己的应用
+        appSearchRequest.setUserId(loginUser.getId());
+        return pageListApps(appSearchRequest);
+    }
+
+    @Override
+    public Page<AppVo> pageListFeaturedApps(AppSearchRequest appSearchRequest) {
+        appSearchRequest.setPriority(AppConstant.FEATURED_APP_PRIORITY);
+        return pageListApps(appSearchRequest);
+    }
+
+    private Page<AppVo> pageListApps(AppSearchRequest appSearchRequest) {
         // 1. 参数校验
         validateSearchRequest(appSearchRequest);
         // 2. 设置分页参数

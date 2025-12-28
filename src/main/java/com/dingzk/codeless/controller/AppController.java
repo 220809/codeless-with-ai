@@ -160,9 +160,7 @@ public class AppController {
             throw new BusinessException(ErrorCode.BAD_PARAM_ERROR);
         }
         User loginUser = userService.getLoginUser(request);
-        // 设置为查询自己的应用
-        appSearchRequest.setUserId(loginUser.getId());
-        Page<AppVo> appVoPage = appService.pageListApps(appSearchRequest, loginUser);
+        Page<AppVo> appVoPage = appService.pageListMyApps(appSearchRequest, loginUser);
         return RespUtils.success(appVoPage);
     }
 
@@ -172,13 +170,11 @@ public class AppController {
             , key = "T(com.dingzk.codeless.utils.CacheKeyUtils).generateCacheKey(#appSearchRequest)" // 缓存key
             , condition = "#appSearchRequest != null && #appSearchRequest.pageNum <= 10"  // 缓存条件
     )
-    public BaseResponse<Page<AppVo>> pageListFeaturedApps(@RequestBody AppSearchRequest appSearchRequest, HttpServletRequest request) {
+    public BaseResponse<Page<AppVo>> pageListFeaturedApps(@RequestBody AppSearchRequest appSearchRequest) {
         if (appSearchRequest == null) {
             throw new BusinessException(ErrorCode.BAD_PARAM_ERROR);
         }
-        User loginUser = userService.getLoginUser(request);
-        appSearchRequest.setPriority(AppConstant.FEATURED_APP_PRIORITY);
-        Page<AppVo> appVoPage = appService.pageListApps(appSearchRequest, loginUser);
+        Page<AppVo> appVoPage = appService.pageListFeaturedApps(appSearchRequest);
         return RespUtils.success(appVoPage);
     }
 

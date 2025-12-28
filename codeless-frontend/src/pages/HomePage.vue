@@ -51,7 +51,7 @@
 
     <div id="app-list">
       <!-- 我的应用列表 -->
-      <div class="apps-section">
+      <div class="apps-section" v-if="loginUserStore.loginUser.id">
         <div class="section-header">
           <h2 class="section-title">我的作品</h2>
         </div>
@@ -85,7 +85,7 @@
       <!-- 精选应用列表 -->
       <div class="apps-section">
         <div class="section-header">
-          <h2 class="section-title">精选案例</h2>
+          <h2 class="section-title">精选应用</h2>
         </div>
         <a-spin :spinning="featuredAppsLoading">
           <div v-if="featuredAppsData.length === 0 && !featuredAppsLoading" class="empty-state">
@@ -286,7 +286,9 @@ const handleViewDeploy = (app: API.AppVo) => {
 
 // 初始化
 onMounted(() => {
-  fetchMyApps()
+  if (loginUserStore.loginUser.id) {
+    fetchMyApps()
+  }
   fetchFeaturedApps()
 })
 </script>
@@ -460,6 +462,7 @@ onMounted(() => {
 .empty-state {
   padding: 60px 0;
   text-align: center;
+  width: 100%;
 }
 
 #app-list {

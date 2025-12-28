@@ -72,7 +72,6 @@ public interface AppService extends IService<App> {
     /**
      * 根据 id 查看应用详情
      * @param id 应用id
-     * @param loginUser 登录用户
      * @return 应用详情
      */
     AppVo getAppById(Long id, User loginUser);
@@ -83,9 +82,11 @@ public interface AppService extends IService<App> {
      * @param loginUser 登录用户
      * @return 应用分页列表
      */
-    Page<AppVo> pageListApps(AppSearchRequest appSearchRequest, User loginUser);
+    Page<AppVo> pageListMyApps(AppSearchRequest appSearchRequest, User loginUser);
 
     // region 管理员功能
+
+    Page<AppVo> pageListFeaturedApps(AppSearchRequest appSearchRequest);
 
     /**
      * 管理员删除应用

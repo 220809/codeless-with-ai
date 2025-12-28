@@ -288,7 +288,7 @@ class AppServiceTest {
         AppSearchRequest appSearchRequest = new AppSearchRequest();
 
         BusinessException exception = Assertions.assertThrows(BusinessException.class, () ->
-                appService.pageListApps(appSearchRequest, null));
+                appService.pageListMyApps(appSearchRequest, null));
         Assertions.assertEquals(errorMessage, exception.getMessage());
     }
 
@@ -301,18 +301,18 @@ class AppServiceTest {
         // 测试pageNum为null
         appSearchRequest.setPageNum(null);
         BusinessException exception1 = Assertions.assertThrows(BusinessException.class, () ->
-                appService.pageListApps(appSearchRequest, testUser));
+                appService.pageListMyApps(appSearchRequest, testUser));
         Assertions.assertEquals(errorMessage, exception1.getMessage());
 
         // 测试pageNum<=0
         appSearchRequest.setPageNum(0);
         BusinessException exception2 = Assertions.assertThrows(BusinessException.class, () ->
-                appService.pageListApps(appSearchRequest, testUser));
+                appService.pageListMyApps(appSearchRequest, testUser));
         Assertions.assertEquals(errorMessage, exception2.getMessage());
 
         appSearchRequest.setPageNum(-1);
         BusinessException exception3 = Assertions.assertThrows(BusinessException.class, () ->
-                appService.pageListApps(appSearchRequest, testUser));
+                appService.pageListMyApps(appSearchRequest, testUser));
         Assertions.assertEquals(errorMessage, exception3.getMessage());
     }
 
@@ -326,18 +326,18 @@ class AppServiceTest {
         // 测试pageSize为null
         appSearchRequest.setPageSize(null);
         BusinessException exception1 = Assertions.assertThrows(BusinessException.class, () ->
-                appService.pageListApps(appSearchRequest, testUser));
+                appService.pageListMyApps(appSearchRequest, testUser));
         Assertions.assertEquals(errorMessage, exception1.getMessage());
 
         // 测试pageSize<=0
         appSearchRequest.setPageSize(0);
         BusinessException exception2 = Assertions.assertThrows(BusinessException.class, () ->
-                appService.pageListApps(appSearchRequest, testUser));
+                appService.pageListMyApps(appSearchRequest, testUser));
         Assertions.assertEquals(errorMessage, exception2.getMessage());
 
         appSearchRequest.setPageSize(-1);
         BusinessException exception3 = Assertions.assertThrows(BusinessException.class, () ->
-                appService.pageListApps(appSearchRequest, testUser));
+                appService.pageListMyApps(appSearchRequest, testUser));
         Assertions.assertEquals(errorMessage, exception3.getMessage());
     }
 
@@ -351,7 +351,7 @@ class AppServiceTest {
 
         appSearchRequest.setSortOrder("invalid");
         BusinessException exception = Assertions.assertThrows(BusinessException.class, () ->
-                appService.pageListApps(appSearchRequest, testUser));
+                appService.pageListMyApps(appSearchRequest, testUser));
         Assertions.assertEquals(errorMessage, exception.getMessage());
     }
 
