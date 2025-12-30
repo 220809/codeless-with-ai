@@ -32,6 +32,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
@@ -74,6 +75,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Resource
     private AiGenFileTypeRoutingService aiGenFileTypeRoutingService;
+
+    @Value("${app.deploy-host:http://localhost}")
+    private String deployHost;
 
     /**
      * 应用名称最大长度
@@ -149,7 +153,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR, "更新应用部署信息失败");
 
         // 返回应用访问url
-        String deployedUrl = StringUtils.join(AppConstant.WEB_DEPLOY_BASE_URL, deployKey);
+        String deployedUrl = String.format("%s/%s", deployHost, deployKey);
         // 异步生成封面
         doAppScreenshotAsync(deployedUrl, appId);
         return deployedUrl;

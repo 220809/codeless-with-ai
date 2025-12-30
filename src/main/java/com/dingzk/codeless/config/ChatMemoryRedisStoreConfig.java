@@ -1,5 +1,6 @@
 package com.dingzk.codeless.config;
 
+import cn.hutool.core.util.StrUtil;
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
 import dev.langchain4j.community.store.memory.chat.redis.StoreType;
 import lombok.Data;
@@ -36,12 +37,15 @@ public class ChatMemoryRedisStoreConfig {
 
     @Bean
     public RedisChatMemoryStore redisChatMemoryStore() {
-        return RedisChatMemoryStore.builder()
+        RedisChatMemoryStore.Builder builder = RedisChatMemoryStore.builder()
                 .host(host)
                 .port(port)
                 .password(password)
                 .storeType(StoreType.STRING)  // 默认是使用 RedisJson，可能需要特定的redis支持，现改为String
-                .ttl(ttl)
-                .build();
+                .ttl(ttl);
+        if (StrUtil.isNotBlank(password)) {
+            builder.user("default");
+        }
+        return builder.build();
     }
 }
