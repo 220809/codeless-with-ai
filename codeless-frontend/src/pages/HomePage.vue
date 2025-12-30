@@ -279,7 +279,8 @@ const handleViewChat = (app: API.AppVo) => {
 const handleViewDeploy = (app: API.AppVo) => {
   if (!app.deployKey) return
   // 打开部署地址：localhost/{deployKey}
-  const deployUrl = `http://localhost/${app.deployKey}`
+  const deployDomain = import.meta.env.VITE_APP_DEPLOY_DOMAIN ?? '';
+  const deployUrl = `${deployDomain}/${app.deployKey}`
   window.open(deployUrl, '_blank')
 }
 
